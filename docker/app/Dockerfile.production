@@ -1,0 +1,97 @@
+FROM dunglas/frankenphp:latest-php8.2-alpine AS base
+
+# Install system dependencies
+RUN apk add --no-cache \
+    curl \
+    libpng-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    oniguruma-dev \
+    icu-dev \
+    linux-headers \
+    openssl-dev
+
+# Install PHP extensions with explicit pcntl
+RUN apk add --no-cache pcre-dev ${PHPIZE_DEPS} \
+    && docker-php-ext-install \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    intl \
+    && docker-php-ext-enable pcntl
+
+# Install MongoDB PHP extension with SSL support and other extensions
+RUN apk add --no-cache $PHPIZE_DEPS \
+    && pecl install mongodb redis \
+    && docker-php-ext-enable mongodb redis
+
+# Verify pcntl is installed
+RUN php -m | grep pcntl
+
+# PHP production settings
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+# Create directory for PHP logs
+RUN mkdir -p /var/log/php && chown www-data:www-data /var/log/php
+
+# Copy custom PHP production configuration
+COPY docker/php/production.ini "$PHP_INI_DIR/conf.d/99-production.ini"
+
+# Composer stage for dependencies
+FROM composer:latest AS composer
+
+# Install composer
+# COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install pcntl extension in composer stage
+RUN apk add --no-cache pcre-dev ${PHPIZE_DEPS} \
+    && docker-php-ext-install pcntl \
+    && docker-php-ext-enable pcntl \
+    && php -m | grep pcntl
+
+WORKDIR /app
+
+# Copy only the files needed for composer install
+COPY composer.json composer.lock ./
+
+# Install dependencies
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+
+# Copy the rest of the application
+COPY . .
+
+# Generate optimized autoloader
+RUN composer dump-autoload --no-dev --optimize
+
+# Final stage
+FROM base AS final
+
+# Set working directory
+WORKDIR /app
+
+# Copy application from composer stage
+COPY --from=composer /app /app
+
+# Set proper permissions
+RUN chown -R www-data:www-data /app \
+    && chmod -R 755 /app/storage /app/bootstrap/cache
+
+# Copy production startup script
+COPY docker/app/start.production.sh /usr/local/bin/start.production.sh
+RUN chmod +x /usr/local/bin/start.production.sh
+
+# Run Laravel optimizations
+RUN php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache
+
+
+# Expose ports
+EXPOSE 80 443 2019
+
+# Start services using the production startup script
+CMD ["/usr/local/bin/start.production.sh"] 
