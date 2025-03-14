@@ -9,6 +9,7 @@
         "php": "^8.2",
         "baopham/dynamodb": "^6.5",
         "laravel/framework": "^11.31",
+        "laravel/horizon": "^5.31",
         "laravel/octane": "^2.8",
         "laravel/tinker": "^2.9"
     },
