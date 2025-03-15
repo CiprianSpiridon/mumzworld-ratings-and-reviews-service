@@ -13,10 +13,9 @@ return new class extends Migration
     public function up(): void
     {
         $client = app(DynamoDbClientService::class)->getClient();
-        $tableName = env('DYNAMODB_TABLE', 'ratings_and_reviews');
 
         $client->createTable([
-            'TableName' => $tableName,
+            'TableName' => 'ratings_and_reviews',
             'AttributeDefinitions' => [
                 [
                     'AttributeName' => 'review_id',
@@ -68,7 +67,7 @@ return new class extends Migration
 
         // Wait until the table is created
         $client->waitUntil('TableExists', [
-            'TableName' => $tableName
+            'TableName' => 'ratings_and_reviews'
         ]);
     }
 
@@ -78,15 +77,14 @@ return new class extends Migration
     public function down(): void
     {
         $client = app(DynamoDbClientService::class)->getClient();
-        $tableName = env('DYNAMODB_TABLE', 'ratings_and_reviews');
 
         $client->deleteTable([
-            'TableName' => $tableName
+            'TableName' => 'ratings_and_reviews'
         ]);
 
         // Wait until the table is deleted
         $client->waitUntil('TableNotExists', [
-            'TableName' => $tableName
+            'TableName' => 'ratings_and_reviews'
         ]);
     }
 };

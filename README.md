@@ -1,11 +1,102 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Mumzworld Ratings and Reviews Service
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This service provides API endpoints for managing product ratings and reviews, including support for media uploads (images and videos).
+
+## Features
+
+- Create, retrieve, update, and delete product reviews
+- Filter reviews by product, user, country, language, and publication status
+- Support for multilingual reviews (English and Arabic)
+- Media upload functionality for attaching images and videos to reviews
+- Publication status management (pending, published, rejected)
+- Configurable storage options (local, public, S3)
+
+## API Documentation
+
+For detailed API documentation, see [docs/API.md](docs/API.md).
+
+### Media Upload
+
+The service supports uploading media files (images and videos) with reviews:
+
+- Supported file types: jpeg, png, jpg, gif, mp4, mov, avi
+- Maximum file size: 10MB per file
+- Files are stored using the default filesystem disk configured in `config/filesystems.php`
+- Storage location can be changed by setting the `FILESYSTEM_DISK` environment variable
+
+#### Storage Options
+
+1. **Local Storage** (default: 'local')
+   - Files are stored in `storage/app/private/reviews/{reviewId}/{mediaId}.{extension}`
+   - Access is controlled by the application
+
+2. **Public Storage** (set `FILESYSTEM_DISK=public`)
+   - Files are stored in `storage/app/public/reviews/{reviewId}/{mediaId}.{extension}`
+   - Public URL: `/storage/reviews/{reviewId}/{mediaId}.{extension}`
+   - Requires running `php artisan storage:link` to create the symbolic link
+
+3. **S3 Storage** (set `FILESYSTEM_DISK=s3`)
+   - Files are stored in Amazon S3
+   - Requires proper AWS configuration in `.env` file
+
+To make the storage directory publicly accessible, run:
+
+```bash
+php artisan storage:link
+```
+
+## Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   composer install
+   ```
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+4. Generate application key:
+   ```bash
+   php artisan key:generate
+   ```
+5. Create the symbolic link for public storage:
+   ```bash
+   php artisan storage:link
+   ```
+6. Run the database migrations and seeders:
+   ```bash
+   php artisan migrate --seed
+   ```
+
+## Seeding Data
+
+The database seeder creates a variety of reviews with placeholder media:
+
+```bash
+php artisan db:seed
+```
+
+This will:
+- Create basic reviews without media
+- Create reviews with single images (using placeholder image URLs)
+- Create reviews with single videos (using placeholder video URLs)
+- Create reviews with multiple media items (mix of image and video placeholders)
+- Create reviews with different publication statuses (pending, published, rejected)
+
+The seeder uses placeholder URLs from various image and video services:
+- Images: Lorem Picsum, Placehold.co, LoremFlickr, Unsplash
+- Videos: YouTube video links
+
+No actual files are created or stored during seeding, only metadata with URLs.
+
+## Testing
+
+Run the test suite:
+
+```bash
+php artisan test
+```
 
 ## About Laravel
 

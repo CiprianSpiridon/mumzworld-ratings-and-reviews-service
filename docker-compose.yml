@@ -30,7 +30,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
       - DYNAMODB_ENDPOINT=http://dynamodb:${DYNAMODB_PORT}
-      - DYNAMODB_TABLE=ratings_and_reviews_service
+      - DYNAMODB_TABLE=ratings_and_reviews
       - OCTANE_SERVER=frankenphp
       - QUEUE_CONNECTION=redis
       - QUEUE_DRIVER=redis

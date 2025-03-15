@@ -43,7 +43,7 @@ return [
                 'key' => 'dynamodblocal',
                 'secret' => 'secret',
             ],
-            'region' => 'stub',
+            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
             // see http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html
             'endpoint' => env('DYNAMODB_LOCAL_ENDPOINT'),
             'debug' => true,
