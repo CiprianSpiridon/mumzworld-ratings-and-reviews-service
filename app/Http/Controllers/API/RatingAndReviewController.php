@@ -68,7 +68,8 @@ class RatingAndReviewController extends Controller
      */
     public function getProductReviews(GetProductReviewsRequest $request, string $id): AnonymousResourceCollection
     {
-        $query = RatingAndReview::where('product_id', $id);
+        // Use the product_id-index GSI for efficient querying
+        $query = RatingAndReview::query()->where('product_id', $id)->usingIndex('product_id-index');
 
         // Apply filters if provided
         if ($request->has('country')) {
@@ -94,7 +95,7 @@ class RatingAndReviewController extends Controller
         $perPage = $request->input('per_page', 15);
         $results = $query->get()->toArray();
 
-        // Create a paginator manually
+        // Create a paginator manually @todo remove hack
         $page = $request->input('page', 1);
         $total = count($results);
         $items = array_slice($results, ($page - 1) * $perPage, $perPage);

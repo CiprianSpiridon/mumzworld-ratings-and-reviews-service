@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\RatingAndReview;
 use Database\Factories\RatingAndReviewFactory;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class RatingAndReviewSeeder extends Seeder
 {
@@ -14,43 +15,38 @@ class RatingAndReviewSeeder extends Seeder
     public function run(): void
     {
         $factory = new RatingAndReviewFactory();
-        $totalReviews = 100000;
-        $batchSize = 25; // Smaller batch size to avoid throttling
-        $progressStep = 1000; // Show progress every 1000 reviews
+        $totalProducts = 50000; // Number of products to create reviews for
+        $progressStep = 100; // Show progress every 100 products
 
-        $this->command->info("Starting to create {$totalReviews} ratings and reviews...");
-        $this->command->getOutput()->progressStart($totalReviews);
+        $this->command->info("Starting to create reviews for {$totalProducts} products...");
+        $this->command->getOutput()->progressStart($totalProducts);
 
-        // Create reviews in batches to manage memory and avoid throttling
-        for ($i = 0; $i < $totalReviews; $i += $batchSize) {
-            $currentBatchSize = min($batchSize, $totalReviews - $i);
-            $reviews = [];
+        // Create reviews for each product
+        for ($i = 0; $i < $totalProducts; $i++) {
+            $productId = (string) Str::uuid(); // Generate a unique product ID
+            $reviewCount = rand(1, 20); // Random number of reviews between 1 and 20
 
-            // Generate the batch
-            for ($j = 0; $j < $currentBatchSize; $j++) {
-                $reviews[] = $factory->make();
+            // Create reviews for this product
+            for ($j = 0; $j < $reviewCount; $j++) {
+                $factory->create([
+                    'product_id' => $productId,
+                    // Randomize other attributes as needed
+                ]);
             }
 
-            // Save the batch
-            foreach ($reviews as $review) {
-                $review->save();
-                $this->command->getOutput()->progressAdvance();
-            }
-
-            // Free up memory
-            unset($reviews);
-
-            // Small delay to avoid throttling
-            usleep(100000); // 100ms
+            $this->command->getOutput()->progressAdvance();
 
             // Show progress
-            if (($i + $currentBatchSize) % $progressStep === 0 || ($i + $currentBatchSize) === $totalReviews) {
-                $this->command->info(" Processed " . ($i + $currentBatchSize) . " of {$totalReviews} reviews");
+            if (($i + 1) % $progressStep === 0 || ($i + 1) === $totalProducts) {
+                $this->command->info(" Processed " . ($i + 1) . " of {$totalProducts} products");
             }
+
+            // Small delay to avoid throttling
+            usleep(50000); // 50ms
         }
 
         $this->command->getOutput()->progressFinish();
-        $this->command->info("Created {$totalReviews} ratings and reviews successfully!");
+        $this->command->info("Created reviews for {$totalProducts} products successfully!");
 
         // Create 10 published reviews for a specific product (for testing)
         $this->command->info("Creating 10 published reviews with images for a specific product...");

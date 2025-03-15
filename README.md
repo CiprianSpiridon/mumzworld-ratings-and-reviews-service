@@ -78,14 +78,14 @@ php artisan storage:link
 The database seeder creates a variety of reviews with placeholder media:
 
 ```bash
-php artisan db:seed
+php artisan db:seed --class=RatingAndReviewSeeder
 ```
 
 This will:
-- Create basic reviews without media
-- Create reviews with single images (using placeholder image URLs)
-- Create reviews with single videos (using placeholder video URLs)
-- Create reviews with multiple media items (mix of image and video placeholders)
+- Create reviews for 5,000 products, with each product having a random number of reviews (1-20)
+- Create 10 published reviews with images for a specific test product (ID: 12345678-1234-1234-1234-123456789012)
+- Create 5 published reviews with videos for the same test product
+- Create 5 reviews with multiple media items (mix of image and video placeholders)
 - Create reviews with different publication statuses (pending, published, rejected)
 
 The seeder uses placeholder URLs from various image and video services:
