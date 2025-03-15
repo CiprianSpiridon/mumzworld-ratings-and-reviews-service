@@ -85,6 +85,7 @@ This endpoint retrieves all reviews for a product with optional filtering. The i
 1. Uses a Global Secondary Index (GSI) for efficient product_id lookups
 2. Applies filters directly in the DynamoDB query
 3. Returns all matching reviews without pagination
+4. Calculates rating statistics including average, count, and distribution
 
 **Response:**
 
@@ -111,7 +112,67 @@ This endpoint retrieves all reviews for a product with optional filtering. The i
         }
       ]
     }
-  ]
+  ],
+  "rating_summary": {
+    "average": 4.5,
+    "count": 10,
+    "distribution": {
+      "1": 0,
+      "2": 1,
+      "3": 1,
+      "4": 2,
+      "5": 6
+    },
+    "percentage_distribution": {
+      "1": 0,
+      "2": 10,
+      "3": 10,
+      "4": 20,
+      "5": 60
+    }
+  }
+}
+```
+
+### Get Product Rating Summary
+
+**Endpoint:** `GET /api/products/{id}/rating`
+
+Retrieves the rating summary for a specific product.
+
+**Path Parameters:**
+
+- `id` (required): The product ID
+
+**Performance Notes:**
+
+This endpoint calculates rating statistics for a product. The implementation:
+
+1. Uses a Global Secondary Index (GSI) for efficient product_id lookups
+2. Applies filters directly in the DynamoDB query
+3. Only includes published reviews in the calculation
+4. Returns a comprehensive rating summary including average, count, and distribution
+
+**Response:**
+
+```json
+{
+  "average": 4.5,
+  "count": 10,
+  "distribution": {
+    "1": 0,
+    "2": 1,
+    "3": 1,
+    "4": 2,
+    "5": 6
+  },
+  "percentage_distribution": {
+    "1": 0,
+    "2": 10,
+    "3": 10,
+    "4": 20,
+    "5": 60
+  }
 }
 ```
 

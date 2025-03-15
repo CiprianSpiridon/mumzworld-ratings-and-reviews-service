@@ -12,9 +12,8 @@ use App\Http\Resources\RatingAndReviewResource;
 use App\Models\RatingAndReview;
 use App\Services\CloudFrontService;
 use App\Services\MediaUploadService;
+use App\Services\RatingCalculationService;
 use App\Services\TranslationService;
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 class RatingAndReviewController extends Controller
@@ -35,20 +34,28 @@ class RatingAndReviewController extends Controller
     protected $cloudFrontService;
 
     /**
+     * @var RatingCalculationService
+     */
+    protected $ratingCalculationService;
+
+    /**
      * Create a new controller instance.
      *
      * @param MediaUploadService $mediaUploadService
      * @param TranslationService $translationService
      * @param CloudFrontService $cloudFrontService
+     * @param RatingCalculationService $ratingCalculationService
      */
     public function __construct(
         MediaUploadService $mediaUploadService,
         TranslationService $translationService,
-        CloudFrontService $cloudFrontService
+        CloudFrontService $cloudFrontService,
+        RatingCalculationService $ratingCalculationService
     ) {
         $this->mediaUploadService = $mediaUploadService;
         $this->translationService = $translationService;
         $this->cloudFrontService = $cloudFrontService;
+        $this->ratingCalculationService = $ratingCalculationService;
     }
 
     /**
@@ -124,9 +131,13 @@ class RatingAndReviewController extends Controller
         // Execute the query and get all results
         $results = $query->get();
 
+        // Calculate the rating statistics
+        $ratingSummary = $this->ratingCalculationService->calculateRatingStatistics($results);
+
         // Build the response
         $response = [
             'data' => $results,
+            'rating_summary' => $ratingSummary
         ];
 
         return response()->json($response);
@@ -224,5 +235,22 @@ class RatingAndReviewController extends Controller
         }
 
         return new RatingAndReviewResource($review);
+    }
+
+    /**
+     * Get the rating summary for a product.
+     * 
+     * This method calculates and returns rating statistics for a product
+     * including average rating, count, and distribution.
+     *
+     * @param string $id Product ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getProductRatingSummary(string $id)
+    {
+        // Use the service to calculate the rating statistics
+        $ratingSummary = $this->ratingCalculationService->calculateProductRating($id);
+
+        return response()->json($ratingSummary);
     }
 }

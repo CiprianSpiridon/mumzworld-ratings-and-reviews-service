@@ -17,6 +17,15 @@ This service provides API endpoints for managing product ratings and reviews, in
 
 For detailed API documentation, see [docs/API.md](docs/API.md).
 
+### OpenAPI Specification
+
+The API is documented using the OpenAPI 3.1 specification. You can find the specification file at [docs/openapi.yaml](docs/openapi.yaml).
+
+You can use this specification with tools like:
+- [Swagger UI](https://swagger.io/tools/swagger-ui/) for interactive API documentation
+- [Postman](https://www.postman.com/) for API testing (import the OpenAPI spec)
+- [OpenAPI Generator](https://openapi-generator.tech/) for generating client libraries
+
 ### Postman Collection
 
 A Postman collection is available for testing the API endpoints. See [docs/postman/README.md](docs/postman/README.md) for instructions on how to use it.
