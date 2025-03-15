@@ -90,11 +90,26 @@ class RatingAndReviewController extends Controller
             $query->where('publication_status', $request->publication_status);
         }
 
-        // Paginate the results
+        // Get the results as an array and convert to collection
         $perPage = $request->input('per_page', 15);
-        $reviews = $query->paginate($perPage);
+        $results = $query->get()->toArray();
 
-        return RatingAndReviewResource::collection($reviews);
+        // Create a paginator manually
+        $page = $request->input('page', 1);
+        $total = count($results);
+        $items = array_slice($results, ($page - 1) * $perPage, $perPage);
+
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            collect($items)->map(function ($item) {
+                return new RatingAndReview($item);
+            }),
+            $total,
+            $perPage,
+            $page,
+            ['path' => $request->url()]
+        );
+
+        return RatingAndReviewResource::collection($paginator);
     }
 
     /**

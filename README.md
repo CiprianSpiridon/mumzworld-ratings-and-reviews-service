@@ -15,6 +15,10 @@ This service provides API endpoints for managing product ratings and reviews, in
 
 For detailed API documentation, see [docs/API.md](docs/API.md).
 
+### Postman Collection
+
+A Postman collection is available for testing the API endpoints. See [docs/postman/README.md](docs/postman/README.md) for instructions on how to use it.
+
 ### Media Upload
 
 The service supports uploading media files (images and videos) with reviews:

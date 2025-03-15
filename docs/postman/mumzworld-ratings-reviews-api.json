@@ -1,0 +1,405 @@
+{
+	"info": {
+		"_postman_id": "a8e7b5f3-6d2c-4e5a-9c1d-f8a3e5b7c9d0",
+		"name": "Mumzworld Ratings and Reviews API",
+		"description": "A collection for testing the Mumzworld Ratings and Reviews API endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Review",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "user_id",
+							"value": "user-123456",
+							"type": "text"
+						},
+						{
+							"key": "product_id",
+							"value": "product-123456",
+							"type": "text"
+						},
+						{
+							"key": "rating",
+							"value": "5",
+							"type": "text"
+						},
+						{
+							"key": "original_language",
+							"value": "en",
+							"type": "text"
+						},
+						{
+							"key": "review_en",
+							"value": "This product is amazing! I highly recommend it to everyone.",
+							"type": "text"
+						},
+						{
+							"key": "country",
+							"value": "AE",
+							"type": "text"
+						},
+						{
+							"key": "media_files[]",
+							"type": "file",
+							"src": [],
+							"disabled": false
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/api/reviews",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"reviews"
+					]
+				},
+				"description": "Creates a new rating and review for a product."
+			},
+			"response": []
+		},
+		{
+			"name": "Create Review with Arabic",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "user_id",
+							"value": "user-123456",
+							"type": "text"
+						},
+						{
+							"key": "product_id",
+							"value": "product-123456",
+							"type": "text"
+						},
+						{
+							"key": "rating",
+							"value": "4",
+							"type": "text"
+						},
+						{
+							"key": "original_language",
+							"value": "ar",
+							"type": "text"
+						},
+						{
+							"key": "review_ar",
+							"value": "هذا المنتج رائع! أوصي به للجميع.",
+							"type": "text"
+						},
+						{
+							"key": "country",
+							"value": "SA",
+							"type": "text"
+						},
+						{
+							"key": "media_files[]",
+							"type": "file",
+							"src": [],
+							"disabled": false
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/api/reviews",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"reviews"
+					]
+				},
+				"description": "Creates a new rating and review in Arabic."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Product Reviews",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/products/:id/reviews?country=AE&language=en&publication_status=published&per_page=10",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"products",
+						":id",
+						"reviews"
+					],
+					"query": [
+						{
+							"key": "country",
+							"value": "AE",
+							"description": "Filter by country code"
+						},
+						{
+							"key": "language",
+							"value": "en",
+							"description": "Filter by language (en or ar)"
+						},
+						{
+							"key": "publication_status",
+							"value": "published",
+							"description": "Filter by publication status"
+						},
+						{
+							"key": "per_page",
+							"value": "10",
+							"description": "Number of reviews per page"
+						}
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "product-123456",
+							"description": "Product ID"
+						}
+					]
+				},
+				"description": "Retrieves reviews for a specific product with optional filters."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Product Reviews (All)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/products/:id/reviews",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"products",
+						":id",
+						"reviews"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "product-123456",
+							"description": "Product ID"
+						}
+					]
+				},
+				"description": "Retrieves all published reviews for a specific product."
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Review",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/reviews/:id",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"reviews",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "review-123456",
+							"description": "Review ID"
+						}
+					]
+				},
+				"description": "Deletes a specific review."
+			},
+			"response": []
+		},
+		{
+			"name": "Update Publication Status",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"publication_status\": \"published\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/reviews/:id/publication",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"reviews",
+						":id",
+						"publication"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "review-123456",
+							"description": "Review ID"
+						}
+					]
+				},
+				"description": "Updates the publication status of a review."
+			},
+			"response": []
+		},
+		{
+			"name": "Create Review with Media",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "user_id",
+							"value": "user-123456",
+							"type": "text"
+						},
+						{
+							"key": "product_id",
+							"value": "product-123456",
+							"type": "text"
+						},
+						{
+							"key": "rating",
+							"value": "5",
+							"type": "text"
+						},
+						{
+							"key": "original_language",
+							"value": "en",
+							"type": "text"
+						},
+						{
+							"key": "review_en",
+							"value": "This product is amazing! I've attached some photos to show how great it is.",
+							"type": "text"
+						},
+						{
+							"key": "country",
+							"value": "AE",
+							"type": "text"
+						},
+						{
+							"key": "media_files[]",
+							"type": "file",
+							"src": []
+						},
+						{
+							"key": "media_files[]",
+							"type": "file",
+							"src": []
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/api/reviews",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"reviews"
+					]
+				},
+				"description": "Creates a new rating and review with multiple media files."
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+} 

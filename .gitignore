@@ -75,3 +75,7 @@ composer.phar
 _ide_helper.php
 _ide_helper_models.php
 .phpstorm.meta.php
+
+
+# ignore the dynamodb database
+docker/dynamodb/data/shared-local-instance.db
