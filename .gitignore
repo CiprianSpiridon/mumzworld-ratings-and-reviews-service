@@ -78,4 +78,4 @@ _ide_helper_models.php
 
 
 # ignore the dynamodb database
-docker/dynamodb/data/shared-local-instance.db
+docker/dynamodb/data/
