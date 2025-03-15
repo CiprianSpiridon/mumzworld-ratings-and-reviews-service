@@ -18,7 +18,7 @@ class CloudFrontService
         // Dispatch job to invalidate the specific review's media files
         InvalidateCloudFrontCache::dispatch([
             "/reviews/{$reviewId}/*",
-        ]);
+        ])->onQueue('cache-invalidation');
     }
 
     /**
@@ -31,7 +31,7 @@ class CloudFrontService
         // Dispatch job to invalidate all review media files
         InvalidateCloudFrontCache::dispatch([
             '/reviews/*',
-        ]);
+        ])->onQueue('cache-invalidation');
     }
 
     /**
@@ -54,7 +54,7 @@ class CloudFrontService
         }
 
         if (!empty($paths)) {
-            InvalidateCloudFrontCache::dispatch($paths);
+            InvalidateCloudFrontCache::dispatch($paths)->onQueue('cache-invalidation');
         }
     }
 
@@ -74,7 +74,7 @@ class CloudFrontService
         $job = new InvalidateCloudFrontCache($paths);
 
         if ($async) {
-            dispatch($job);
+            dispatch($job->onQueue('cache-invalidation'));
         } else {
             dispatch_sync($job);
         }
@@ -91,7 +91,7 @@ class CloudFrontService
         // Invalidate all API responses for this product's reviews
         InvalidateCloudFrontCache::dispatch([
             "/api/products/{$productId}/reviews*",
-        ]);
+        ])->onQueue('cache-invalidation');
     }
 
     /**
@@ -107,7 +107,7 @@ class CloudFrontService
             "/api/reviews/{$reviewId}*",
             "/api/reviews/{$reviewId}/translate*",
             "/api/reviews/{$reviewId}/publication*",
-        ]);
+        ])->onQueue('cache-invalidation');
     }
 
     /**
@@ -121,6 +121,6 @@ class CloudFrontService
         InvalidateCloudFrontCache::dispatch([
             '/api/reviews*',
             '/api/products/*/reviews*',
-        ]);
+        ])->onQueue('cache-invalidation');
     }
 }

@@ -76,6 +76,6 @@ _ide_helper.php
 _ide_helper_models.php
 .phpstorm.meta.php
 
-
-# ignore the dynamodb database
-docker/dynamodb/data/
+# ignore the dynamodb database file but keep the directory structure
+docker/dynamodb/data/*
+!docker/dynamodb/data/.gitkeep
