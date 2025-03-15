@@ -9,6 +9,7 @@
         "php": "^8.2",
         "aws/aws-sdk-php": "^3.300",
         "baopham/dynamodb": "^6.5",
+        "google/cloud-translate": "^2.0",
         "laravel/framework": "^11.31",
         "laravel/horizon": "^5.31",
         "laravel/octane": "^2.8",

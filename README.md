@@ -195,11 +195,3 @@ The seeder uses placeholder URLs from various image and video services:
 - Videos: YouTube video links
 
 No actual files are created or stored during seeding, only metadata with URLs.
-
-## Testing
-
-Run the test suite:
-
-```bash
-php artisan test
-```
