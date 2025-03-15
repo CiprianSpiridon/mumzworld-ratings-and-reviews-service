@@ -5,11 +5,14 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DeleteRatingAndReviewRequest;
 use App\Http\Requests\GetProductReviewsRequest;
+use App\Http\Requests\GetTranslatedReviewRequest;
 use App\Http\Requests\StoreRatingAndReviewRequest;
 use App\Http\Requests\UpdatePublicationStatusRequest;
 use App\Http\Resources\RatingAndReviewResource;
 use App\Models\RatingAndReview;
+use App\Services\CloudFrontService;
 use App\Services\MediaUploadService;
+use App\Services\TranslationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -22,13 +25,30 @@ class RatingAndReviewController extends Controller
     protected $mediaUploadService;
 
     /**
+     * @var TranslationService
+     */
+    protected $translationService;
+
+    /**
+     * @var CloudFrontService
+     */
+    protected $cloudFrontService;
+
+    /**
      * Create a new controller instance.
      *
      * @param MediaUploadService $mediaUploadService
+     * @param TranslationService $translationService
+     * @param CloudFrontService $cloudFrontService
      */
-    public function __construct(MediaUploadService $mediaUploadService)
-    {
+    public function __construct(
+        MediaUploadService $mediaUploadService,
+        TranslationService $translationService,
+        CloudFrontService $cloudFrontService
+    ) {
         $this->mediaUploadService = $mediaUploadService;
+        $this->translationService = $translationService;
+        $this->cloudFrontService = $cloudFrontService;
     }
 
     /**
@@ -60,13 +80,23 @@ class RatingAndReviewController extends Controller
             $review->save();
         }
 
+        // Invalidate product reviews API cache
+        $this->cloudFrontService->invalidateProductReviewsApi($review->product_id);
+
         return new RatingAndReviewResource($review);
     }
 
     /**
      * Display reviews for a specific product.
+     * 
+     * This method retrieves all reviews for a product with optional filtering.
+     * 
+     * Performance considerations:
+     * 1. Uses GSI (Global Secondary Index) for efficient product_id lookups
+     * 2. Applies filters directly in the DynamoDB query
+     * 3. No pagination is applied - returns all matching reviews
      */
-    public function getProductReviews(GetProductReviewsRequest $request, string $id): AnonymousResourceCollection
+    public function getProductReviews(GetProductReviewsRequest $request, string $id)
     {
         // Use the product_id-index GSI for efficient querying
         $query = RatingAndReview::query()->where('product_id', $id)->usingIndex('product_id-index');
@@ -91,26 +121,15 @@ class RatingAndReviewController extends Controller
             $query->where('publication_status', $request->publication_status);
         }
 
-        // Get the results as an array and convert to collection
-        $perPage = $request->input('per_page', 15);
-        $results = $query->get()->toArray();
+        // Execute the query and get all results
+        $results = $query->get();
 
-        // Create a paginator manually @todo remove hack
-        $page = $request->input('page', 1);
-        $total = count($results);
-        $items = array_slice($results, ($page - 1) * $perPage, $perPage);
+        // Build the response
+        $response = [
+            'data' => $results,
+        ];
 
-        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
-            collect($items)->map(function ($item) {
-                return new RatingAndReview($item);
-            }),
-            $total,
-            $perPage,
-            $page,
-            ['path' => $request->url()]
-        );
-
-        return RatingAndReviewResource::collection($paginator);
+        return response()->json($response);
     }
 
     /**
@@ -124,7 +143,25 @@ class RatingAndReviewController extends Controller
             return response()->json(['message' => 'Review not found'], Response::HTTP_NOT_FOUND);
         }
 
+        // Check if review has media before deleting
+        $hasMedia = !empty($review->media);
+
+        // Store media items for invalidation
+        $mediaItems = $hasMedia ? $review->media : [];
+
+        // Store product ID for API cache invalidation
+        $productId = $review->product_id;
+
         $review->delete();
+
+        // Invalidate CloudFront cache for the review's media if it had any
+        if ($hasMedia) {
+            $this->cloudFrontService->invalidateMediaItems($mediaItems);
+        }
+
+        // Invalidate API cache for this review and product
+        $this->cloudFrontService->invalidateReviewApi($id);
+        $this->cloudFrontService->invalidateProductReviewsApi($productId);
 
         return response()->json(['message' => 'Review deleted successfully'], Response::HTTP_OK);
     }
@@ -142,6 +179,49 @@ class RatingAndReviewController extends Controller
 
         $review->publication_status = $request->publication_status;
         $review->save();
+
+        // Invalidate API cache for this review and its product
+        $this->cloudFrontService->invalidateReviewApi($id);
+        $this->cloudFrontService->invalidateProductReviewsApi($review->product_id);
+
+        return new RatingAndReviewResource($review);
+    }
+
+    /**
+     * Get a review with translation to the requested language.
+     *
+     * @param GetTranslatedReviewRequest $request
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse|\App\Http\Resources\RatingAndReviewResource
+     */
+    public function getTranslatedReview(GetTranslatedReviewRequest $request, string $id)
+    {
+        $targetLanguage = $request->input('language');
+
+        // Find the review
+        $review = RatingAndReview::find($id);
+
+        if (!$review) {
+            return response()->json(['message' => 'Review not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Check if the translation already exists
+        $targetField = "review_{$targetLanguage}";
+
+        // If translation doesn't exist or is empty, translate it
+        if (empty($review->$targetField)) {
+            try {
+                $review = $this->translationService->translateReview($review);
+
+                // Invalidate API cache for this review since we've added a translation
+                $this->cloudFrontService->invalidateReviewApi($id);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'message' => 'Translation failed',
+                    'error' => $e->getMessage()
+                ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+        }
 
         return new RatingAndReviewResource($review);
     }

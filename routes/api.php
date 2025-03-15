@@ -24,3 +24,4 @@ Route::post('/reviews', [RatingAndReviewController::class, 'store']);
 Route::get('/products/{id}/reviews', [RatingAndReviewController::class, 'getProductReviews']);
 Route::delete('/reviews/{id}', [RatingAndReviewController::class, 'destroy']);
 Route::put('/reviews/{id}/publication', [RatingAndReviewController::class, 'updatePublicationStatus']);
+Route::get('/reviews/{id}/translate', [RatingAndReviewController::class, 'getTranslatedReview']);

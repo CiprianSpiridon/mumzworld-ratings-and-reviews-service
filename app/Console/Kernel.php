@@ -14,6 +14,8 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         \App\Console\Commands\DynamoDbMigrate::class,
+        \App\Console\Commands\TranslateReviewsCommand::class,
+        \App\Console\Commands\InvalidateCloudFrontCache::class,
     ];
 
     /**
@@ -22,6 +24,11 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
+
+        // Translate reviews daily
+        $schedule->command('reviews:translate --limit=500 --status=published')
+            ->daily()
+            ->withoutOverlapping();
     }
 
     /**

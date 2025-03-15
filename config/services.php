@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'google_translate' => [
+        'api_key' => env('GOOGLE_TRANSLATE_API_KEY'),
+        'endpoint' => env('GOOGLE_TRANSLATE_ENDPOINT', 'https://translation.googleapis.com/language/translate/v2'),
+    ],
+
+    'cloudfront' => [
+        'distribution_id' => env('CLOUDFRONT_DISTRIBUTION_ID'),
+        'key' => env('CLOUDFRONT_KEY', env('AWS_ACCESS_KEY_ID')),
+        'secret' => env('CLOUDFRONT_SECRET', env('AWS_SECRET_ACCESS_KEY')),
+        'region' => env('CLOUDFRONT_REGION', env('AWS_DEFAULT_REGION', 'us-east-1')),
+    ],
+
 ];

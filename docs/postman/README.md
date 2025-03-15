@@ -54,6 +54,15 @@ The collection includes the following requests:
   - Path: review ID
 - **Body**: JSON with publication_status field
 
+### Get Translated Review
+- **Method**: GET
+- **Endpoint**: `/api/reviews/:id/translate`
+- **Description**: Gets a review with translation to the requested language
+- **Parameters**: 
+  - Path: review ID
+  - Query: language (either 'en' or 'ar')
+- **Notes**: If the translation doesn't exist, it will be created on-demand
+
 ### Create Review with Media
 - **Method**: POST
 - **Endpoint**: `/api/reviews`

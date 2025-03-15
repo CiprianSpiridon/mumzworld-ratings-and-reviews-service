@@ -7,9 +7,11 @@ This service provides API endpoints for managing product ratings and reviews, in
 - Create, retrieve, update, and delete product reviews
 - Filter reviews by product, user, country, language, and publication status
 - Support for multilingual reviews (English and Arabic)
+- Automatic translation of reviews between supported languages
 - Media upload functionality for attaching images and videos to reviews
 - Publication status management (pending, published, rejected)
 - Configurable storage options (local, public, S3)
+- CloudFront cache invalidation for media files and API responses
 
 ## API Documentation
 
@@ -48,6 +50,97 @@ To make the storage directory publicly accessible, run:
 ```bash
 php artisan storage:link
 ```
+
+### CloudFront Cache Invalidation
+
+The service includes automatic CloudFront cache invalidation for media files and API responses when reviews are created, updated, or deleted. This ensures that both media files and API responses are properly refreshed in the CDN cache when the underlying data changes.
+
+#### Configuration
+
+To use the CloudFront cache invalidation feature, add the following to your `.env` file:
+
+```
+CLOUDFRONT_DISTRIBUTION_ID=your_distribution_id
+CLOUDFRONT_KEY=your_aws_key                 # Optional, defaults to AWS_ACCESS_KEY_ID
+CLOUDFRONT_SECRET=your_aws_secret           # Optional, defaults to AWS_SECRET_ACCESS_KEY
+CLOUDFRONT_REGION=us-east-1                 # Optional, defaults to AWS_DEFAULT_REGION
+```
+
+#### Manual Invalidation
+
+You can manually invalidate the CloudFront cache using the following command:
+
+```bash
+# Invalidate all review media and API responses
+php artisan cloudfront:invalidate --all
+
+# Invalidate only media files
+php artisan cloudfront:invalidate --media
+
+# Invalidate only API responses
+php artisan cloudfront:invalidate --api
+
+# Invalidate media and API responses for a specific review
+php artisan cloudfront:invalidate --review=review_id
+
+# Invalidate API responses for a specific product
+php artisan cloudfront:invalidate --product=product_id
+
+# Invalidate specific paths
+php artisan cloudfront:invalidate /reviews/review_id/image1.jpg /api/products/product_id/reviews
+
+# Run synchronously (wait for completion)
+php artisan cloudfront:invalidate --all --sync
+```
+
+## Translation Service
+
+The service includes automatic translation of reviews between supported languages (currently English and Arabic):
+
+- Reviews are automatically translated when created
+- Missing translations can be generated using the command:
+  ```bash
+  php artisan reviews:translate --limit=100 --status=published
+  ```
+- On-demand translation is available through the API endpoint:
+  ```
+  GET /api/reviews/{id}/translate?language=ar
+  ```
+
+### Translation API Endpoint
+
+The translation endpoint allows users to request a specific translation:
+
+- **URL**: `/api/reviews/{id}/translate`
+- **Method**: GET
+- **URL Params**: 
+  - Required: `id=[string]` (Review ID)
+- **Query Params**:
+  - Required: `language=[string]` (Target language code, either 'en' or 'ar')
+- **Success Response**:
+  - Code: 200
+  - Content: The review resource with the requested translation
+- **Error Responses**:
+  - Code: 404 (Not Found) - If the review doesn't exist
+  - Code: 422 (Unprocessable Entity) - If the language parameter is invalid
+  - Code: 500 (Internal Server Error) - If translation fails
+
+If the translation already exists, it will be returned immediately. If not, the service will translate the content and then return it.
+
+### Configuration
+
+To use the translation service, you need to set up Google Cloud Translation API:
+
+1. Obtain a Google Cloud API key with access to the Translation API
+2. Add the following to your `.env` file:
+   ```
+   GOOGLE_TRANSLATE_API_KEY=your_api_key
+   GOOGLE_TRANSLATE_ENDPOINT=https://translation.googleapis.com/language/translate/v2
+   ```
+
+### Scheduled Translation
+
+The service is configured to automatically translate published reviews daily. You can modify this schedule in `app/Console/Kernel.php`.
 
 ## Installation
 
@@ -101,61 +194,3 @@ Run the test suite:
 ```bash
 php artisan test
 ```
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

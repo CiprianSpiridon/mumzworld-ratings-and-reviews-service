@@ -373,6 +373,47 @@
 				"description": "Creates a new rating and review with multiple media files."
 			},
 			"response": []
+		},
+		{
+			"name": "Get Translated Review",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/reviews/:id/translate?language=ar",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"reviews",
+						":id",
+						"translate"
+					],
+					"query": [
+						{
+							"key": "language",
+							"value": "ar",
+							"description": "Target language (en or ar)"
+						}
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "",
+							"description": "Review ID"
+						}
+					]
+				},
+				"description": "Get a review with translation to the requested language. If the translation doesn't exist, it will be created."
+			},
+			"response": []
 		}
 	],
 	"event": [

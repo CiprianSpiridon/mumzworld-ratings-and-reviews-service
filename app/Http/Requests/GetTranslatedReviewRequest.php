@@ -4,28 +4,38 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class GetProductReviewsRequest extends FormRequest
+class GetTranslatedReviewRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true; // No authentication required as per requirements
+        return true;
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
      */
     public function rules(): array
     {
         return [
-            'country' => 'sometimes|string|size:2',
-            'language' => 'sometimes|string|in:en,ar',
-            'user_id' => 'sometimes|string|max:255',
-            'publication_status' => 'sometimes|string|in:pending,published,rejected,all'
+            'language' => 'required|string|in:en,ar',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array
+     */
+    public function messages(): array
+    {
+        return [
+            'language.required' => 'The language parameter is required.',
+            'language.in' => 'The language must be either "en" or "ar".',
         ];
     }
 
@@ -34,7 +44,7 @@ class GetProductReviewsRequest extends FormRequest
      *
      * @return void
      */
-    protected function prepareForValidation()
+    public function prepareForValidation(): void
     {
         // The route parameter 'id' is already validated by Laravel's routing system
         // and is required by definition in the route
