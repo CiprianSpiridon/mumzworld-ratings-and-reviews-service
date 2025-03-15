@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use BaoPham\DynamoDb\DynamoDbClientService;
 
 return new class extends Migration
 {
@@ -11,30 +12,94 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
-            $table->timestamps();
-        });
+        $client = app(DynamoDbClientService::class)->getClient();
 
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
-        });
+        // Create users table
+        $client->createTable([
+            'TableName' => 'users',
+            'AttributeDefinitions' => [
+                [
+                    'AttributeName' => 'id',
+                    'AttributeType' => 'S'
+                ]
+            ],
+            'KeySchema' => [
+                [
+                    'AttributeName' => 'id',
+                    'KeyType' => 'HASH'
+                ]
+            ],
+            'BillingMode' => 'PAY_PER_REQUEST'
+        ]);
 
-        Schema::create('sessions', function (Blueprint $table) {
-            $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->longText('payload');
-            $table->integer('last_activity')->index();
-        });
+        // Wait until the table is created
+        $client->waitUntil('TableExists', [
+            'TableName' => 'users'
+        ]);
+
+        // Create password_reset_tokens table
+        $client->createTable([
+            'TableName' => 'password_reset_tokens',
+            'AttributeDefinitions' => [
+                [
+                    'AttributeName' => 'email',
+                    'AttributeType' => 'S'
+                ]
+            ],
+            'KeySchema' => [
+                [
+                    'AttributeName' => 'email',
+                    'KeyType' => 'HASH'
+                ]
+            ],
+            'BillingMode' => 'PAY_PER_REQUEST'
+        ]);
+
+        // Wait until the table is created
+        $client->waitUntil('TableExists', [
+            'TableName' => 'password_reset_tokens'
+        ]);
+
+        // Create sessions table
+        $client->createTable([
+            'TableName' => 'sessions',
+            'AttributeDefinitions' => [
+                [
+                    'AttributeName' => 'id',
+                    'AttributeType' => 'S'
+                ],
+                [
+                    'AttributeName' => 'user_id',
+                    'AttributeType' => 'S'
+                ]
+            ],
+            'KeySchema' => [
+                [
+                    'AttributeName' => 'id',
+                    'KeyType' => 'HASH'
+                ]
+            ],
+            'GlobalSecondaryIndexes' => [
+                [
+                    'IndexName' => 'user_id-index',
+                    'KeySchema' => [
+                        [
+                            'AttributeName' => 'user_id',
+                            'KeyType' => 'HASH'
+                        ]
+                    ],
+                    'Projection' => [
+                        'ProjectionType' => 'ALL'
+                    ]
+                ]
+            ],
+            'BillingMode' => 'PAY_PER_REQUEST'
+        ]);
+
+        // Wait until the table is created
+        $client->waitUntil('TableExists', [
+            'TableName' => 'sessions'
+        ]);
     }
 
     /**
@@ -42,8 +107,36 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
-        Schema::dropIfExists('sessions');
+        $client = app(DynamoDbClientService::class)->getClient();
+
+        // Delete users table
+        $client->deleteTable([
+            'TableName' => 'users'
+        ]);
+
+        // Wait until the table is deleted
+        $client->waitUntil('TableNotExists', [
+            'TableName' => 'users'
+        ]);
+
+        // Delete password_reset_tokens table
+        $client->deleteTable([
+            'TableName' => 'password_reset_tokens'
+        ]);
+
+        // Wait until the table is deleted
+        $client->waitUntil('TableNotExists', [
+            'TableName' => 'password_reset_tokens'
+        ]);
+
+        // Delete sessions table
+        $client->deleteTable([
+            'TableName' => 'sessions'
+        ]);
+
+        // Wait until the table is deleted
+        $client->waitUntil('TableNotExists', [
+            'TableName' => 'sessions'
+        ]);
     }
 };

@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use BaoPham\DynamoDb\DynamoDbClientService;
 
 return new class extends Migration
 {
@@ -11,17 +12,53 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('cache', function (Blueprint $table) {
-            $table->string('key')->primary();
-            $table->mediumText('value');
-            $table->integer('expiration');
-        });
+        $client = app(DynamoDbClientService::class)->getClient();
 
-        Schema::create('cache_locks', function (Blueprint $table) {
-            $table->string('key')->primary();
-            $table->string('owner');
-            $table->integer('expiration');
-        });
+        // Create cache table
+        $client->createTable([
+            'TableName' => 'cache',
+            'AttributeDefinitions' => [
+                [
+                    'AttributeName' => 'key',
+                    'AttributeType' => 'S'
+                ]
+            ],
+            'KeySchema' => [
+                [
+                    'AttributeName' => 'key',
+                    'KeyType' => 'HASH'
+                ]
+            ],
+            'BillingMode' => 'PAY_PER_REQUEST'
+        ]);
+
+        // Wait until the table is created
+        $client->waitUntil('TableExists', [
+            'TableName' => 'cache'
+        ]);
+
+        // Create cache_locks table
+        $client->createTable([
+            'TableName' => 'cache_locks',
+            'AttributeDefinitions' => [
+                [
+                    'AttributeName' => 'key',
+                    'AttributeType' => 'S'
+                ]
+            ],
+            'KeySchema' => [
+                [
+                    'AttributeName' => 'key',
+                    'KeyType' => 'HASH'
+                ]
+            ],
+            'BillingMode' => 'PAY_PER_REQUEST'
+        ]);
+
+        // Wait until the table is created
+        $client->waitUntil('TableExists', [
+            'TableName' => 'cache_locks'
+        ]);
     }
 
     /**
@@ -29,7 +66,26 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cache');
-        Schema::dropIfExists('cache_locks');
+        $client = app(DynamoDbClientService::class)->getClient();
+
+        // Delete cache table
+        $client->deleteTable([
+            'TableName' => 'cache'
+        ]);
+
+        // Wait until the table is deleted
+        $client->waitUntil('TableNotExists', [
+            'TableName' => 'cache'
+        ]);
+
+        // Delete cache_locks table
+        $client->deleteTable([
+            'TableName' => 'cache_locks'
+        ]);
+
+        // Wait until the table is deleted
+        $client->waitUntil('TableNotExists', [
+            'TableName' => 'cache_locks'
+        ]);
     }
 };

@@ -30,6 +30,16 @@ return [
     */
 
     'connections' => [
+        'dynamodb' => [
+            'driver' => 'dynamodb',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'token' => env('AWS_SESSION_TOKEN', null),
+            'endpoint' => env('DYNAMODB_ENDPOINT', null),
+            'prefix' => '', // table prefix
+            'database' => env('DYNAMODB_DATABASE', 'ratings_and_reviews_service'),
+        ],
 
         'sqlite' => [
             'driver' => 'sqlite',
@@ -147,7 +157,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
         ],
 
         'default' => [
