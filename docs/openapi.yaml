@@ -452,6 +452,49 @@ paths:
                   error:
                     type: string
 
+  /reviews/counts:
+    get:
+      summary: Get review counts by status
+      description: Retrieves the count of reviews for each publication status (pending, published, rejected) and the total count.
+      operationId: getReviewCountsByStatus
+      tags:
+        - Reviews
+      responses:
+        '200':
+          description: Review counts by status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      pending:
+                        type: integer
+                        description: Number of pending reviews
+                        example: 42
+                      published:
+                        type: integer
+                        description: Number of published reviews
+                        example: 156
+                      rejected:
+                        type: integer
+                        description: Number of rejected reviews
+                        example: 8
+                      total:
+                        type: integer
+                        description: Total number of reviews
+                        example: 206
+                  meta:
+                    type: object
+                    properties:
+                      timestamp:
+                        type: string
+                        format: date-time
+                        description: Timestamp when the counts were generated
+                        example: "2024-03-15T12:34:56Z"
+
 components:
   schemas:
     CreateReviewRequest:

@@ -97,9 +97,9 @@ class RatingAndReviewController extends Controller
 
     /**
      * Display reviews for a specific product.
-     * 
+     *
      * This method retrieves all reviews for a product with optional filtering.
-     * 
+     *
      * Performance considerations:
      * 1. Uses GSI (Global Secondary Index) for efficient product_id lookups
      * 2. Applies filters directly in the DynamoDB query
@@ -241,7 +241,7 @@ class RatingAndReviewController extends Controller
 
     /**
      * Get the rating summary for a product.
-     * 
+     *
      * This method calculates and returns rating statistics for a product
      * including average rating, count, and distribution.
      *
@@ -265,15 +265,18 @@ class RatingAndReviewController extends Controller
     public function getReviewsByStatus(GetReviewsByStatusRequest $request)
     {
         // Determine the publication status to filter by
-        $publicationStatus = $request->input('publication_status', 'pending');
+        $publicationStatus = $request->input('publication_status', null);
 
         // Use the publication_status-index GSI
         $query = RatingAndReview::query();
 
         // Use the publication_status-index GSI
-        $query->where('publication_status', $publicationStatus)
-            ->usingIndex('publication_status-index');
-
+        if ($publicationStatus) {
+            $query->where('publication_status', $publicationStatus)
+                ->usingIndex('publication_status-index');
+        } else {
+            $query->usingIndex('product_id-index');
+        }
         // Apply additional filters
         if ($request->has('country')) {
             $query->where('country', $request->country);
@@ -380,5 +383,37 @@ class RatingAndReviewController extends Controller
         $collection->additional($additionalData);
 
         return $collection;
+    }
+
+    /**
+     * Get counts of reviews by publication status.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getReviewCountsByStatus()
+    {
+        // $statuses = ['pending', 'published', 'rejected'];
+        $statuses = ['pending'];
+        $counts = [];
+
+        foreach ($statuses as $status) {
+            // Use the publication_status-index GSI for efficient counting
+            $count = RatingAndReview::query()
+                ->where('publication_status', $status)
+                ->usingIndex('publication_status-index')
+                ->count();
+
+            $counts[$status] = $count;
+        }
+
+        // Add total count
+        $counts['total'] = array_sum($counts);
+
+        return response()->json([
+            'data' => $counts,
+            'meta' => [
+                'timestamp' => now()->toIso8601String()
+            ]
+        ]);
     }
 }
