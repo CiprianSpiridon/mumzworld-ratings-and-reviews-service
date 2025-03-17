@@ -49,11 +49,12 @@ class RatingAndReviewController extends Controller
      * @param RatingCalculationService $ratingCalculationService
      */
     public function __construct(
-        MediaUploadService $mediaUploadService,
-        TranslationService $translationService,
-        CloudFrontService $cloudFrontService,
+        MediaUploadService       $mediaUploadService,
+        TranslationService       $translationService,
+        CloudFrontService        $cloudFrontService,
         RatingCalculationService $ratingCalculationService
-    ) {
+    )
+    {
         $this->mediaUploadService = $mediaUploadService;
         $this->translationService = $translationService;
         $this->cloudFrontService = $cloudFrontService;
@@ -288,6 +289,7 @@ class RatingAndReviewController extends Controller
     {
         // Determine the publication status to filter by
         $publicationStatus = $request->input('publication_status', null);
+        $user_id = $request->input('user_id', null);
 
         // Use the publication_status-index GSI
         $query = RatingAndReview::query();
@@ -296,6 +298,10 @@ class RatingAndReviewController extends Controller
         if ($publicationStatus) {
             $query->where('publication_status', $publicationStatus)
                 ->usingIndex('publication_status-index');
+        }
+        if ($request->has('user_id')) {
+            $query->where('user_id', $user_id)
+                ->usingIndex('user_id-index');
         } else {
             $query->usingIndex('product_id-index');
         }
