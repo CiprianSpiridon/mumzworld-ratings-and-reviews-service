@@ -6,7 +6,7 @@ This directory contains a Postman collection for testing the Mumzworld Ratings a
 
 1. Download and install [Postman](https://www.postman.com/downloads/)
 2. Import the collection file `mumzworld-ratings-reviews-api.json` into Postman
-3. Set up your environment variable for `base_url` (default is `http://localhost:8000`)
+3. Set up your environment variable for `base_url` (default is `http://localhost:3000`)
 
 ## Available Requests
 
@@ -82,6 +82,6 @@ To test media upload functionality:
 
 The collection uses the following environment variables:
 
-- `base_url`: The base URL of your API (default: http://localhost:8000)
+- `base_url`: The base URL of your API (default: http://localhost:3000)
 
 You can create a new environment in Postman and set these variables according to your development, staging, or production environments. 

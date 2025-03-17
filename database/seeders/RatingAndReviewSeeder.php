@@ -17,8 +17,9 @@ class RatingAndReviewSeeder extends Seeder
         $factory = new RatingAndReviewFactory();
         $totalProducts = 50000; // Number of products to create reviews for
         $progressStep = 100; // Show progress every 100 products
+        $mediaPercentage = 80; // Percentage of reviews that should have media
 
-        $this->command->info("Starting to create reviews for {$totalProducts} products...");
+        $this->command->info("Starting to create reviews for {$totalProducts} products with {$mediaPercentage}% having media...");
         $this->command->getOutput()->progressStart($totalProducts);
 
         // Create reviews for each product
@@ -28,10 +29,35 @@ class RatingAndReviewSeeder extends Seeder
 
             // Create reviews for this product
             for ($j = 0; $j < $reviewCount; $j++) {
-                $factory->create([
-                    'product_id' => $productId,
-                    // Randomize other attributes as needed
-                ]);
+                // Determine if this review should have media (80% chance)
+                $shouldHaveMedia = rand(1, 100) <= $mediaPercentage;
+
+                if ($shouldHaveMedia) {
+                    // Determine the type of media to add
+                    $mediaType = rand(1, 100);
+
+                    if ($mediaType <= 60) {
+                        // 60% chance of single image
+                        $factory->makeWithImage([
+                            'product_id' => $productId,
+                        ]);
+                    } else if ($mediaType <= 80) {
+                        // 20% chance of single video
+                        $factory->makeWithVideo([
+                            'product_id' => $productId,
+                        ]);
+                    } else {
+                        // 20% chance of multiple media (2-4 items)
+                        $factory->makeWithMultipleMedia(rand(2, 4), [
+                            'product_id' => $productId,
+                        ]);
+                    }
+                } else {
+                    // 20% of reviews without media
+                    $factory->create([
+                        'product_id' => $productId,
+                    ]);
+                }
             }
 
             $this->command->getOutput()->progressAdvance();

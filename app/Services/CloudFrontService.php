@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\InvalidateCloudFrontCache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class CloudFrontService
@@ -88,10 +89,18 @@ class CloudFrontService
      */
     public function invalidateProductReviewsApi(string $productId)
     {
-        // Invalidate all API responses for this product's reviews
-        InvalidateCloudFrontCache::dispatch([
-            "/api/products/{$productId}/reviews*",
-        ])->onQueue('cache-invalidation');
+        try {
+            // Invalidate all API responses for this product's reviews
+            InvalidateCloudFrontCache::dispatch([
+                "/api/products/{$productId}/reviews*",
+            ])->onQueue('cache-invalidation');
+        } catch (\Exception $e) {
+            // Log the error but don't throw it further
+            Log::error('Failed to invalidate product reviews API cache', [
+                'product_id' => $productId,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**
@@ -102,12 +111,20 @@ class CloudFrontService
      */
     public function invalidateReviewApi(string $reviewId)
     {
-        // Invalidate all API responses for this review
-        InvalidateCloudFrontCache::dispatch([
-            "/api/reviews/{$reviewId}*",
-            "/api/reviews/{$reviewId}/translate*",
-            "/api/reviews/{$reviewId}/publication*",
-        ])->onQueue('cache-invalidation');
+        try {
+            // Invalidate all API responses for this review
+            InvalidateCloudFrontCache::dispatch([
+                "/api/reviews/{$reviewId}*",
+                "/api/reviews/{$reviewId}/translate*",
+                "/api/reviews/{$reviewId}/publication*",
+            ])->onQueue('cache-invalidation');
+        } catch (\Exception $e) {
+            // Log the error but don't throw it further
+            Log::error('Failed to invalidate review API cache', [
+                'review_id' => $reviewId,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**

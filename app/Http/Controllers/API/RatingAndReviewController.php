@@ -8,6 +8,7 @@ use App\Http\Requests\GetProductReviewsRequest;
 use App\Http\Requests\GetTranslatedReviewRequest;
 use App\Http\Requests\StoreRatingAndReviewRequest;
 use App\Http\Requests\UpdatePublicationStatusRequest;
+use App\Http\Requests\GetReviewsByStatusRequest;
 use App\Http\Resources\RatingAndReviewResource;
 use App\Models\RatingAndReview;
 use App\Services\CloudFrontService;
@@ -15,6 +16,7 @@ use App\Services\MediaUploadService;
 use App\Services\RatingCalculationService;
 use App\Services\TranslationService;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 class RatingAndReviewController extends Controller
 {
@@ -47,9 +49,9 @@ class RatingAndReviewController extends Controller
      * @param RatingCalculationService $ratingCalculationService
      */
     public function __construct(
-        MediaUploadService $mediaUploadService,
-        TranslationService $translationService,
-        CloudFrontService $cloudFrontService,
+        MediaUploadService       $mediaUploadService,
+        TranslationService       $translationService,
+        CloudFrontService        $cloudFrontService,
         RatingCalculationService $ratingCalculationService
     ) {
         $this->mediaUploadService = $mediaUploadService;
@@ -95,9 +97,9 @@ class RatingAndReviewController extends Controller
 
     /**
      * Display reviews for a specific product.
-     * 
+     *
      * This method retrieves all reviews for a product with optional filtering.
-     * 
+     *
      * Performance considerations:
      * 1. Uses GSI (Global Secondary Index) for efficient product_id lookups
      * 2. Applies filters directly in the DynamoDB query
@@ -182,20 +184,42 @@ class RatingAndReviewController extends Controller
      */
     public function updatePublicationStatus(UpdatePublicationStatusRequest $request, string $id)
     {
-        $review = RatingAndReview::find($id);
+        try {
+            $review = RatingAndReview::find($id);
 
-        if (!$review) {
-            return response()->json(['message' => 'Review not found'], Response::HTTP_NOT_FOUND);
+            if (!$review) {
+                return response()->json(['message' => 'Review not found'], Response::HTTP_NOT_FOUND);
+            }
+
+            $review->publication_status = $request->publication_status;
+            $review->save();
+
+            // Invalidate API cache for this review and its product
+            try {
+                $this->cloudFrontService->invalidateReviewApi($id);
+                $this->cloudFrontService->invalidateProductReviewsApi($review->product_id);
+            } catch (\Exception $e) {
+                // Log cache invalidation error but don't fail the request
+                Log::error('Cache invalidation failed during publication status update', [
+                    'review_id' => $id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            return new RatingAndReviewResource($review);
+        } catch (\Exception $e) {
+            Log::error('Failed to update publication status', [
+                'review_id' => $id,
+                'status' => $request->publication_status,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to update publication status',
+                'error' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        $review->publication_status = $request->publication_status;
-        $review->save();
-
-        // Invalidate API cache for this review and its product
-        $this->cloudFrontService->invalidateReviewApi($id);
-        $this->cloudFrontService->invalidateProductReviewsApi($review->product_id);
-
-        return new RatingAndReviewResource($review);
     }
 
     /**
@@ -239,7 +263,7 @@ class RatingAndReviewController extends Controller
 
     /**
      * Get the rating summary for a product.
-     * 
+     *
      * This method calculates and returns rating statistics for a product
      * including average rating, count, and distribution.
      *
@@ -252,5 +276,205 @@ class RatingAndReviewController extends Controller
         $ratingSummary = $this->ratingCalculationService->calculateProductRating($id);
 
         return response()->json($ratingSummary);
+    }
+
+    /**
+     * Get reviews by publication status with pagination.
+     *
+     * @param GetReviewsByStatusRequest $request
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+     */
+    public function getReviewsByStatus(GetReviewsByStatusRequest $request)
+    {
+        // Determine the publication status to filter by
+        $publicationStatus = $request->input('publication_status', null);
+        $user_id = $request->input('user_id', null);
+        $product_id = $request->input('product_id', null);
+
+        // Use the publication_status-index GSI
+        $query = RatingAndReview::query();
+
+        // Use the publication_status-index GSI
+        if ($publicationStatus) {
+            $query->where('publication_status', $publicationStatus)
+                ->usingIndex('publication_status-index');
+        } elseif ($user_id) {
+            $query->where('user_id', $user_id)
+                ->usingIndex('user_id-index');
+        } else if ($product_id) {
+            $query->where('product_id', $product_id)
+                ->usingIndex('product_id-index');
+        } else {
+            $query->usingIndex('product_id-index');
+        }
+        // Apply additional filters
+        if ($request->has('country')) {
+            $query->where('country', $request->country);
+        }
+
+        if ($request->has('language')) {
+            $query->where('original_language', $request->language);
+        }
+
+        // Set a reasonable page size
+        $perPage = $request->input('per_page', 100);
+        $perPage = min($perPage, 100);
+        $query->limit($perPage);
+
+        // Add exclusive start key if we have a next token
+        if ($request->has('next_token')) {
+            try {
+                $lastEvaluatedKey = json_decode($request->next_token, true);
+
+                // For GSI queries, we need to include both the hash key of the index and the primary key
+                if (!isset($lastEvaluatedKey['publication_status'])) {
+                    $lastEvaluatedKey['publication_status'] = $publicationStatus;
+                }
+
+                $query->afterKey($lastEvaluatedKey);
+            } catch (\Exception $e) {
+                // Log the error but continue without pagination
+                \Illuminate\Support\Facades\Log::error('Error parsing next_token: ' . $e->getMessage());
+            }
+        }
+
+        // Execute the query
+        $results = $query->get();
+
+        // Get the last key for pagination
+        $lastItem = $results->last();
+        $lastKey = null;
+
+        if ($lastItem) {
+            // For GSI queries, we need to include both the hash key of the index and the primary key
+            $lastKey = [
+                'review_id' => $lastItem->review_id,
+                'publication_status' => $lastItem->publication_status
+            ];
+        }
+
+        $nextToken = $lastKey ? json_encode($lastKey) : null;
+
+        // Sort results by created_at descending (newest first)
+        $sortedResults = $results->sortByDesc('created_at');
+
+        // Invalidate cache if requested
+        if ($request->boolean('invalidate_cache')) {
+            $this->cloudFrontService->invalidatePaths(['/api/reviews']);
+        }
+
+        // Return the resource collection
+        $collection = RatingAndReviewResource::collection($sortedResults->values());
+
+        // Create pagination metadata
+        $currentPage = $request->input('page', 1);
+        $path = url('/api/reviews');
+        $queryParams = $request->except(['page', 'next_token']);
+
+        // Prepare additional data
+        $additionalData = [];
+
+        // Add pagination links
+        $links = [
+            'first' => $path . '?' . http_build_query(array_merge($queryParams, ['page' => 1])),
+        ];
+
+        // Add next_token if there are more results
+        if ($nextToken && $results->count() >= $perPage) {
+            $additionalData['next_token'] = $nextToken;
+            $links['next'] = $path . '?' . http_build_query(array_merge($queryParams, ['next_token' => $nextToken]));
+        }
+
+        // Add links and meta to additional data
+        $additionalData['links'] = $links;
+        $additionalData['meta'] = [
+            'current_page' => $currentPage,
+            'per_page' => $perPage,
+            'path' => $path,
+            'from' => (($currentPage - 1) * $perPage) + 1,
+            'to' => (($currentPage - 1) * $perPage) + $results->count(),
+        ];
+
+        // Add debug information in development
+        if (app()->environment('local', 'development')) {
+            $additionalData['debug'] = [
+                'total_results' => $results->count(),
+                'method' => 'query_with_gsi',
+                'filters' => [
+                    'publication_status' => $publicationStatus,
+                    'country' => $request->input('country'),
+                    'language' => $request->input('language'),
+                ],
+                'last_key' => $lastKey
+            ];
+        }
+
+        // Add all additional data in a single call
+        $collection->additional($additionalData);
+
+        return $collection;
+    }
+
+    /**
+     * Check if there are any pending reviews.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function hasPendingReviews()
+    {
+        // Get the AWS DynamoDB client correctly
+        $client = app(\BaoPham\DynamoDb\DynamoDbClientService::class)->getClient();
+        $tableName = 'ratings_and_reviews';
+
+        // Simple query to check if there are any pending reviews
+        $result = $client->query([
+            'TableName' => $tableName,
+            'IndexName' => 'publication_status-index',
+            'KeyConditionExpression' => 'publication_status = :status',
+            'ExpressionAttributeValues' => [
+                ':status' => ['S' => 'pending']
+            ],
+            'Select' => 'COUNT',
+            'Limit' => 1 // We only need to know if there's at least one
+        ]);
+
+        $hasPending = $result['Count'] > 0;
+
+        return response()->json([
+            'data' => [
+                'has_pending_reviews' => $hasPending
+            ],
+            'meta' => [
+                'timestamp' => now()->toIso8601String()
+            ]
+        ]);
+    }
+
+    // DO NOT TOUCH THIS FUNCTION
+    public function getReviewCountsByStatusBK()
+    {
+        $statuses = ['pending', 'published', 'rejected'];
+        // $statuses = ['pending'];
+        $counts = [];
+
+        foreach ($statuses as $status) {
+            // Use the publication_status-index GSI for efficient counting 
+            $count = RatingAndReview::query()
+                ->where('publication_status', $status)
+                ->usingIndex('publication_status-index')
+                ->get();
+
+            $counts[$status] = $count->count();
+        }
+
+        // Add total count
+        $counts['total'] = array_sum($counts);
+
+        return response()->json([
+            'data' => $counts,
+            'meta' => [
+                'timestamp' => now()->toIso8601String()
+            ]
+        ]);
     }
 }
