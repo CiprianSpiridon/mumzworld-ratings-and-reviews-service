@@ -44,13 +44,6 @@ class InvalidateCloudFrontCache implements ShouldQueue
     public $backoff = [30, 60, 120];
 
     /**
-     * The name of the queue the job should be sent to.
-     *
-     * @var string|null
-     */
-    public $queue = 'cache-invalidation';
-
-    /**
      * Create a new job instance.
      *
      * @param array $paths Paths to invalidate (e.g., ['/images/*', '/reviews/123.jpg'])
@@ -61,6 +54,7 @@ class InvalidateCloudFrontCache implements ShouldQueue
     {
         $this->paths = $paths;
         $this->distributionId = $distributionId ?? config('services.cloudfront.distribution_id');
+        $this->queue = 'cache-invalidation';
     }
 
     /**

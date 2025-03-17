@@ -184,20 +184,42 @@ class RatingAndReviewController extends Controller
      */
     public function updatePublicationStatus(UpdatePublicationStatusRequest $request, string $id)
     {
-        $review = RatingAndReview::find($id);
+        try {
+            $review = RatingAndReview::find($id);
 
-        if (!$review) {
-            return response()->json(['message' => 'Review not found'], Response::HTTP_NOT_FOUND);
+            if (!$review) {
+                return response()->json(['message' => 'Review not found'], Response::HTTP_NOT_FOUND);
+            }
+
+            $review->publication_status = $request->publication_status;
+            $review->save();
+
+            // Invalidate API cache for this review and its product
+            try {
+                $this->cloudFrontService->invalidateReviewApi($id);
+                $this->cloudFrontService->invalidateProductReviewsApi($review->product_id);
+            } catch (\Exception $e) {
+                // Log cache invalidation error but don't fail the request
+                Log::error('Cache invalidation failed during publication status update', [
+                    'review_id' => $id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            return new RatingAndReviewResource($review);
+        } catch (\Exception $e) {
+            Log::error('Failed to update publication status', [
+                'review_id' => $id,
+                'status' => $request->publication_status,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to update publication status',
+                'error' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        $review->publication_status = $request->publication_status;
-        $review->save();
-
-        // Invalidate API cache for this review and its product
-        $this->cloudFrontService->invalidateReviewApi($id);
-        $this->cloudFrontService->invalidateProductReviewsApi($review->product_id);
-
-        return new RatingAndReviewResource($review);
     }
 
     /**
