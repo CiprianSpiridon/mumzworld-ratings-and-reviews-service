@@ -22,7 +22,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Ratings and Reviews API Routes
 Route::post('/reviews', [RatingAndReviewController::class, 'store']);
 Route::get('/reviews', [RatingAndReviewController::class, 'getReviewsByStatus']);
-Route::get('/reviews/counts', [RatingAndReviewController::class, 'getReviewCountsByStatus']);
+Route::get('/reviews/pending-check', [RatingAndReviewController::class, 'hasPendingReviews']);
 Route::get('/products/{id}/reviews', [RatingAndReviewController::class, 'getProductReviews']);
 Route::get('/products/{id}/rating', [RatingAndReviewController::class, 'getProductRatingSummary']);
 Route::delete('/reviews/{id}', [RatingAndReviewController::class, 'destroy']);

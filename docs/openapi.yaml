@@ -452,16 +452,16 @@ paths:
                   error:
                     type: string
 
-  /reviews/counts:
+  /reviews/pending-check:
     get:
-      summary: Get review counts by status
-      description: Retrieves the count of reviews for each publication status (pending, published, rejected) and the total count.
-      operationId: getReviewCountsByStatus
+      summary: Check if there are pending reviews
+      description: Checks if there are any reviews with pending publication status.
+      operationId: hasPendingReviews
       tags:
         - Reviews
       responses:
         '200':
-          description: Review counts by status
+          description: Pending reviews check result
           content:
             application/json:
               schema:
@@ -470,29 +470,17 @@ paths:
                   data:
                     type: object
                     properties:
-                      pending:
-                        type: integer
-                        description: Number of pending reviews
-                        example: 42
-                      published:
-                        type: integer
-                        description: Number of published reviews
-                        example: 156
-                      rejected:
-                        type: integer
-                        description: Number of rejected reviews
-                        example: 8
-                      total:
-                        type: integer
-                        description: Total number of reviews
-                        example: 206
+                      has_pending_reviews:
+                        type: boolean
+                        description: Whether there are any pending reviews
+                        example: true
                   meta:
                     type: object
                     properties:
                       timestamp:
                         type: string
                         format: date-time
-                        description: Timestamp when the counts were generated
+                        description: Timestamp when the check was performed
                         example: "2024-03-15T12:34:56Z"
 
 components:

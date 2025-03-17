@@ -53,8 +53,7 @@ class RatingAndReviewController extends Controller
         TranslationService       $translationService,
         CloudFrontService        $cloudFrontService,
         RatingCalculationService $ratingCalculationService
-    )
-    {
+    ) {
         $this->mediaUploadService = $mediaUploadService;
         $this->translationService = $translationService;
         $this->cloudFrontService = $cloudFrontService;
@@ -290,6 +289,7 @@ class RatingAndReviewController extends Controller
         // Determine the publication status to filter by
         $publicationStatus = $request->input('publication_status', null);
         $user_id = $request->input('user_id', null);
+        $product_id = $request->input('product_id', null);
 
         // Use the publication_status-index GSI
         $query = RatingAndReview::query();
@@ -298,10 +298,12 @@ class RatingAndReviewController extends Controller
         if ($publicationStatus) {
             $query->where('publication_status', $publicationStatus)
                 ->usingIndex('publication_status-index');
-        }
-        if ($request->has('user_id')) {
+        } elseif ($user_id) {
             $query->where('user_id', $user_id)
                 ->usingIndex('user_id-index');
+        } else if ($product_id) {
+            $query->where('product_id', $product_id)
+                ->usingIndex('product_id-index');
         } else {
             $query->usingIndex('product_id-index');
         }
@@ -414,24 +416,55 @@ class RatingAndReviewController extends Controller
     }
 
     /**
-     * Get counts of reviews by publication status.
+     * Check if there are any pending reviews.
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getReviewCountsByStatus()
+    public function hasPendingReviews()
     {
-        // $statuses = ['pending', 'published', 'rejected'];
-        $statuses = ['pending'];
+        // Get the AWS DynamoDB client correctly
+        $client = app(\BaoPham\DynamoDb\DynamoDbClientService::class)->getClient();
+        $tableName = 'ratings_and_reviews';
+
+        // Simple query to check if there are any pending reviews
+        $result = $client->query([
+            'TableName' => $tableName,
+            'IndexName' => 'publication_status-index',
+            'KeyConditionExpression' => 'publication_status = :status',
+            'ExpressionAttributeValues' => [
+                ':status' => ['S' => 'pending']
+            ],
+            'Select' => 'COUNT',
+            'Limit' => 1 // We only need to know if there's at least one
+        ]);
+
+        $hasPending = $result['Count'] > 0;
+
+        return response()->json([
+            'data' => [
+                'has_pending_reviews' => $hasPending
+            ],
+            'meta' => [
+                'timestamp' => now()->toIso8601String()
+            ]
+        ]);
+    }
+
+    // DO NOT TOUCH THIS FUNCTION
+    public function getReviewCountsByStatusBK()
+    {
+        $statuses = ['pending', 'published', 'rejected'];
+        // $statuses = ['pending'];
         $counts = [];
 
         foreach ($statuses as $status) {
-            // Use the publication_status-index GSI for efficient counting
+            // Use the publication_status-index GSI for efficient counting 
             $count = RatingAndReview::query()
                 ->where('publication_status', $status)
                 ->usingIndex('publication_status-index')
-                ->count();
+                ->get();
 
-            $counts[$status] = $count;
+            $counts[$status] = $count->count();
         }
 
         // Add total count
