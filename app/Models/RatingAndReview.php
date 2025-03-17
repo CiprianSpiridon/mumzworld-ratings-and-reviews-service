@@ -85,6 +85,9 @@ class RatingAndReview extends DynamoDbModel
         'product_id-index' => [
             'hash' => 'product_id',
         ],
+        'publication_status-index' => [
+            'hash' => 'publication_status',
+        ],
     ];
 
     /**

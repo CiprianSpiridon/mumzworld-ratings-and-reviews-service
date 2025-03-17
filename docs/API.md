@@ -61,6 +61,80 @@ The API supports uploading media files (images and videos) with reviews. To uplo
 }
 ```
 
+### Get Reviews by Status
+
+**Endpoint:** `GET /api/reviews`
+
+Retrieves reviews filtered by publication status and other criteria, with pagination.
+
+**Query Parameters:**
+
+- `publication_status` (optional): Filter by publication status (`pending`, `published`, or `rejected`)
+- `country` (optional): Filter by 2-letter country code
+- `language` (optional): Filter by original language (`en` or `ar`)
+- `per_page` (optional): Number of reviews per page (default: 15, max: 100)
+- `page` (optional): Page number for pagination (default: 1)
+- `next_token` (optional): Pagination token for DynamoDB key-based pagination
+- `invalidate_cache` (optional): Set to `true` to invalidate the CloudFront cache for this endpoint
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "review_id": "string",
+      "user_id": "string",
+      "product_id": "string",
+      "rating": "integer",
+      "original_language": "string",
+      "review_en": "string",
+      "review_ar": "string",
+      "country": "string",
+      "publication_status": "string",
+      "created_at": "datetime",
+      "updated_at": "datetime",
+      "media": [
+        {
+          "media_id": "string",
+          "media_type": "string",
+          "media_url": "string"
+        }
+      ]
+    }
+  ],
+  "links": {
+    "first": "string (URL)",
+    "prev": "string (URL) or null",
+    "next": "string (URL) or null"
+  },
+  "meta": {
+    "current_page": "integer",
+    "per_page": "integer",
+    "path": "string (URL)"
+  },
+  "next_token": "string or null"
+}
+```
+
+**Pagination Notes:**
+
+This endpoint uses DynamoDB's key-based pagination for efficient querying of large datasets. The `next_token` parameter is used to retrieve the next page of results:
+
+1. For the first request, omit the `next_token` parameter
+2. If the response includes a `next_token` value, use it in your next request to get the next page
+3. When `next_token` is null in the response, you've reached the end of the results
+
+**Example Requests:**
+
+```
+# First page
+GET /api/reviews?publication_status=pending&per_page=10
+
+# Next page (using next_token from previous response)
+GET /api/reviews?publication_status=pending&per_page=10&next_token=eyJyZXZpZXdfaWQiOnsicyI6ImFiYzEyMyJ9fQ==
+```
+
 ### Get Product Reviews
 
 **Endpoint:** `GET /api/products/{id}/reviews`
