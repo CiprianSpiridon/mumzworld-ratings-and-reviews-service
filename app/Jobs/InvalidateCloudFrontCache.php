@@ -11,43 +11,46 @@ use Illuminate\Support\Facades\Log;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\Exception\AwsException;
 
+/**
+ * Invalidates CloudFront cache for specified paths
+ */
 class InvalidateCloudFrontCache implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * The paths to invalidate.
+     * Paths to invalidate
      *
      * @var array
      */
-    protected $paths;
+    protected array $paths;
 
     /**
-     * The CloudFront distribution ID.
+     * CloudFront distribution ID
      *
      * @var string
      */
-    protected $distributionId;
+    protected string $distributionId;
 
     /**
-     * The number of times the job may be attempted.
+     * Maximum retry attempts
      *
      * @var int
      */
     public $tries = 3;
 
     /**
-     * The number of seconds to wait before retrying the job.
+     * Retry backoff in seconds
      *
      * @var array
      */
     public $backoff = [30, 60, 120];
 
     /**
-     * Create a new job instance.
+     * Create a new job instance
      *
-     * @param array $paths Paths to invalidate (e.g., ['/images/*', '/reviews/123.jpg'])
-     * @param string|null $distributionId CloudFront distribution ID (optional, defaults to config)
+     * @param array $paths Paths to invalidate
+     * @param string|null $distributionId Optional, defaults to config
      * @return void
      */
     public function __construct(array $paths, ?string $distributionId = null)
@@ -109,11 +112,11 @@ class InvalidateCloudFrontCache implements ShouldQueue
     }
 
     /**
-     * Create a CloudFront client instance.
+     * Create CloudFront client
      *
      * @return \Aws\CloudFront\CloudFrontClient
      */
-    protected function createCloudFrontClient()
+    protected function createCloudFrontClient(): \Aws\CloudFront\CloudFrontClient
     {
         return new CloudFrontClient([
             'version' => 'latest',

@@ -5,18 +5,14 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Class UpdatePublicationStatusRequest
- * 
- * Form request for validating the update of a review's publication status.
+ * Validates publication status updates for reviews
  */
 class UpdatePublicationStatusRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
-     * 
-     * Currently allows all requests. Implement specific authorization if needed.
+     * Determine request authorization
      *
-     * @return bool True if authorized, false otherwise.
+     * @return bool
      */
     public function authorize(): bool
     {
@@ -24,13 +20,9 @@ class UpdatePublicationStatusRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request for updating publication status.
+     * Get validation rules
      *
-     * Ensures 'publication_status' is provided and is one of the allowed values.
-     * The review ID is typically a route parameter and handled by controller/routing.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     *         An array of validation rules.
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
@@ -40,16 +32,13 @@ class UpdatePublicationStatusRequest extends FormRequest
     }
 
     /**
-     * Prepare the data for validation.
-     * 
-     * This method can be used to modify request data before validation occurs.
-     * In this case, it's empty as the primary input ('id' from route) is handled by routing.
+     * Prepare data before validation
      *
      * @return void
      */
-    protected function prepareForValidation(): void // Added return type hint
+    protected function prepareForValidation(): void
     {
-        // The route parameter 'id' for the review is validated by Laravel's routing system
+        // Route parameter 'id' is validated by Laravel's routing system
         // (e.g., type hinting in controller method or explicit route constraints)
         // and is required by definition in the route itself.
         // No other data preparation needed for this specific request before validation of 'publication_status'.

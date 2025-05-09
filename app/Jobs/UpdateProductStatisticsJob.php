@@ -13,8 +13,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Class UpdateProductStatisticsJob
  * 
- * A queued job responsible for triggering the recalculation of rating and review statistics
- * for a specific product.
+ * Recalculates rating and review statistics for a product.
  */
 class UpdateProductStatisticsJob implements ShouldQueue
 {
@@ -65,12 +64,11 @@ class UpdateProductStatisticsJob implements ShouldQueue
     /**
      * Execute the job.
      * 
-     * This method is called when the job is processed by a queue worker.
-     * It resolves the RatingsAndReviewsStatisticsService and calls its calculate method.
+     * Calls the statistics service to recalculate product ratings.
      *
-     * @param RatingsAndReviewsStatisticsService $statisticsService The service responsible for calculations.
+     * @param RatingsAndReviewsStatisticsService $statisticsService
      * @return void
-     * @throws \Exception Re-throws exceptions to allow Laravel's queue worker to handle retries/failure.
+     * @throws \Exception Rethrows exceptions for queue retry handling
      */
     public function handle(RatingsAndReviewsStatisticsService $statisticsService): void
     {

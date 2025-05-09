@@ -102,11 +102,11 @@ class RatingAndReview extends DynamoDbModel
     ];
 
     /**
-     * Create a new rating and review model instance.
+     * Create a new rating and review model instance
      *
-     * Initializes default values for review_id, created_at, publication_status, and media if not provided.
+     * Sets defaults for review_id, created_at, publication_status, and media
      *
-     * @param array<string, mixed> $attributes The attributes to set on the model.
+     * @param array<string, mixed> $attributes
      */
     public function __construct(array $attributes = [])
     {
@@ -128,11 +128,10 @@ class RatingAndReview extends DynamoDbModel
     }
 
     /**
-     * Accessor for the 'media' attribute.
-     * Decodes the JSON string from DynamoDB into a PHP array.
+     * Accessor for the 'media' attribute
      *
-     * @param string|null $value The JSON string from DynamoDB.
-     * @return array The decoded media items as an array, or an empty array if null/invalid JSON.
+     * @param string|null $value JSON string from DynamoDB
+     * @return array Decoded media items or empty array
      */
     public function getMediaAttribute(?string $value): array
     {
@@ -140,13 +139,12 @@ class RatingAndReview extends DynamoDbModel
     }
 
     /**
-     * Mutator for the 'media' attribute.
-     * Encodes a PHP array into a JSON string for storage in DynamoDB.
+     * Mutator for the 'media' attribute
      *
-     * @param array|string|null $value The array of media items or a pre-encoded JSON string.
+     * @param array|string|null $value Media items or JSON string
      * @return void
      */
-    public function setMediaAttribute(array|string|null $value): void
+    public function setMediaAttribute($value): void
     {
         if (is_array($value)) {
             $this->attributes['media'] = json_encode($value);
@@ -160,10 +158,10 @@ class RatingAndReview extends DynamoDbModel
     }
 
     /**
-     * Scope a query to only include published ratings and reviews.
+     * Scope: published reviews only
      *
-     * @param \BaoPham\DynamoDb\Query\Builder $query The query builder instance.
-     * @return \BaoPham\DynamoDb\Query\Builder The modified query builder.
+     * @param \BaoPham\DynamoDb\Query\Builder $query
+     * @return \BaoPham\DynamoDb\Query\Builder
      */
     public function scopePublished($query)
     {
@@ -171,11 +169,11 @@ class RatingAndReview extends DynamoDbModel
     }
 
     /**
-     * Scope a query to only include ratings and reviews for a specific product.
+     * Scope: reviews for a specific product
      *
-     * @param \BaoPham\DynamoDb\Query\Builder $query The query builder instance.
-     * @param string $productId The ID of the product to filter by.
-     * @return \BaoPham\DynamoDb\Query\Builder The modified query builder.
+     * @param \BaoPham\DynamoDb\Query\Builder $query
+     * @param string $productId
+     * @return \BaoPham\DynamoDb\Query\Builder
      */
     public function scopeForProduct($query, string $productId)
     {
@@ -183,11 +181,11 @@ class RatingAndReview extends DynamoDbModel
     }
 
     /**
-     * Scope a query to only include ratings and reviews from a specific country.
+     * Scope: reviews from a specific country
      *
-     * @param \BaoPham\DynamoDb\Query\Builder $query The query builder instance.
-     * @param string $country The 2-letter country code to filter by.
-     * @return \BaoPham\DynamoDb\Query\Builder The modified query builder.
+     * @param \BaoPham\DynamoDb\Query\Builder $query
+     * @param string $country 2-letter country code
+     * @return \BaoPham\DynamoDb\Query\Builder
      */
     public function scopeFromCountry($query, string $country)
     {
@@ -195,11 +193,11 @@ class RatingAndReview extends DynamoDbModel
     }
 
     /**
-     * Scope a query to only include ratings and reviews in a specific language.
+     * Scope: reviews in a specific language
      *
-     * @param \BaoPham\DynamoDb\Query\Builder $query The query builder instance.
-     * @param string $language The language code (e.g., 'en', 'ar') to filter by.
-     * @return \BaoPham\DynamoDb\Query\Builder The modified query builder.
+     * @param \BaoPham\DynamoDb\Query\Builder $query
+     * @param string $language Language code (e.g., 'en', 'ar')
+     * @return \BaoPham\DynamoDb\Query\Builder
      */
     public function scopeInLanguage($query, string $language)
     {
@@ -207,11 +205,11 @@ class RatingAndReview extends DynamoDbModel
     }
 
     /**
-     * Scope a query to only include ratings and reviews with a specific rating value.
+     * Scope: reviews with a specific rating
      *
-     * @param \BaoPham\DynamoDb\Query\Builder $query The query builder instance.
-     * @param int $rating The rating value (1-5) to filter by.
-     * @return \BaoPham\DynamoDb\Query\Builder The modified query builder.
+     * @param \BaoPham\DynamoDb\Query\Builder $query
+     * @param int $rating Rating value (1-5)
+     * @return \BaoPham\DynamoDb\Query\Builder
      */
     public function scopeWithRating($query, int $rating)
     {
@@ -219,11 +217,11 @@ class RatingAndReview extends DynamoDbModel
     }
 
     /**
-     * Scope a query to only include ratings and reviews from a specific user.
+     * Scope: reviews from a specific user
      *
-     * @param \BaoPham\DynamoDb\Query\Builder $query The query builder instance.
-     * @param string $userId The ID of the user to filter by.
-     * @return \BaoPham\DynamoDb\Query\Builder The modified query builder.
+     * @param \BaoPham\DynamoDb\Query\Builder $query
+     * @param string $userId
+     * @return \BaoPham\DynamoDb\Query\Builder
      */
     public function scopeFromUser($query, string $userId)
     {
