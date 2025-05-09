@@ -65,11 +65,24 @@ class MediaUploadService
             return asset('storage/' . $path);
         }
 
-        // For S3, construct URL based on the bucket and region
+        // For S3, prioritize CloudFront URL if AWS_URL is set, otherwise use direct S3 URL
         if ($this->disk === 's3') {
-            $bucket = config('filesystems.disks.s3.bucket');
-            $region = config('filesystems.disks.s3.region');
-            return "https://{$bucket}.s3.{$region}.amazonaws.com/{$path}";
+            $cloudFrontUrl = config('filesystems.disks.s3.url');
+            if (!empty($cloudFrontUrl)) {
+                // AWS_URL is set (presumably to a CloudFront domain), use app('filesystem')->disk()->url()
+                return app('filesystem')->disk('s3')->url($path);
+            } else {
+                // AWS_URL is not set, construct direct S3 URL as a fallback
+                $bucket = config('filesystems.disks.s3.bucket');
+                $region = config('filesystems.disks.s3.region');
+                // Ensure bucket and region are fetched correctly
+                if ($bucket && $region) {
+                    return "https://{$bucket}.s3.{$region}.amazonaws.com/{$path}";
+                } else {
+                    // Fallback: if S3 bucket/region not configured (and AWS_URL not set), assume local public storage for URL
+                    return asset('storage/' . $path);
+                }
+            }
         }
 
         // For local disk, return a path that can be served by the application
