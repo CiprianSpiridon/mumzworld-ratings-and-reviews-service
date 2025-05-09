@@ -156,10 +156,10 @@ Retrieves reviews for a specific product.
 
 This endpoint retrieves all reviews for a product with optional filtering. The implementation:
 
-1. Uses a Global Secondary Index (GSI) for efficient product_id lookups
-2. Applies filters directly in the DynamoDB query
-3. Returns all matching reviews without pagination
-4. Calculates rating statistics including average, count, and distribution
+1. Uses a Global Secondary Index (GSI) for efficient product_id lookups.
+2. Applies filters directly in the DynamoDB query.
+3. Returns all matching reviews without pagination for the reviews themselves.
+4. The included `rating_summary` is fetched from a pre-calculated data store, ensuring fast retrieval of statistics. This summary is updated automatically when review statuses change or when published reviews are deleted.
 
 **Response:**
 
@@ -220,12 +220,12 @@ Retrieves the rating summary for a specific product.
 
 **Performance Notes:**
 
-This endpoint calculates rating statistics for a product. The implementation:
+This endpoint retrieves a pre-calculated rating summary for a product. The implementation:
 
-1. Uses a Global Secondary Index (GSI) for efficient product_id lookups
-2. Applies filters directly in the DynamoDB query
-3. Only includes published reviews in the calculation
-4. Returns a comprehensive rating summary including average, count, and distribution
+1. Fetches data directly from a dedicated statistics store (e.g., `ratings_and_review_statistics` DynamoDB table), ensuring very fast responses.
+2. The statistics are based on published reviews only.
+3. This summary is updated automatically when review statuses change or when published reviews are deleted.
+4. If no pre-calculated statistics are found for a product (e.g., it has no published reviews), a default summary with zero counts and average will be returned.
 
 **Response:**
 
@@ -339,6 +339,18 @@ Retrieves a review with translation to the requested language. If the translatio
 - 422 Unprocessable Entity: If the language parameter is invalid
 - 500 Internal Server Error: If translation fails
 
+## Product Rating Statistics
+
+To ensure optimal performance when retrieving product rating summaries (average rating, count, distribution), the API utilizes a pre-calculation mechanism.
+
+- **Pre-calculated Summaries:** Statistics for each product are calculated and stored in a dedicated data store (e.g., a `ratings_and_review_statistics` DynamoDB table).
+- **Automatic Updates:** These summaries are automatically updated in the background whenever:
+    - A review's publication status changes (e.g., from pending to published, or published to rejected).
+    - A published review is deleted.
+- **Data Basis:** All calculated statistics are based *only* on reviews that have a `published` status.
+- **Fast Retrieval:** Endpoints that return rating summaries (like `GET /api/products/{id}/rating` and the summary part of `GET /api/products/{id}/reviews`) read directly from this pre-calculated store, making these lookups very fast.
+- **No Statistics State:** If a product has no published reviews, or if its statistics haven't been calculated yet (e.g., for a brand new product), API endpoints will return a default summary indicating zero reviews and ratings.
+
 ## Media Storage
 
 Media files uploaded with reviews are stored using the default filesystem disk configured in `config/filesystems.php`. The default disk can be changed by setting the `FILESYSTEM_DISK` environment variable.
@@ -357,13 +369,18 @@ The application supports several storage options:
    - Requires running `php artisan storage:link` to create the symbolic link
 
 3. **S3 Storage** (set `FILESYSTEM_DISK=s3`)
-   - Files are stored in Amazon S3
-   - Requires proper AWS configuration in `.env` file:
+   - Files are stored in Amazon S3.
+   - **URL Generation**:
+     - Media URLs will be **CloudFront URLs** if the `AWS_URL` environment variable in your `.env` file is set to your CloudFront distribution's domain (e.g., `AWS_URL=https://yourcloudfrontdomain.cloudfront.net`).
+     - If `AWS_URL` is not set, direct **S3 bucket URLs** will be generated.
+     - If `AWS_URL` is not set AND essential S3 configuration like `AWS_BUCKET` or `AWS_DEFAULT_REGION` is missing, the system will fallback to generating URLs as if the media were in **local public storage** (`/storage/reviews/...`). This is a safety fallback and usually indicates a misconfiguration if S3 is the intended primary storage for media.
+   - Requires proper AWS configuration in `.env` file. For example:
      ```
      AWS_ACCESS_KEY_ID=your-key
      AWS_SECRET_ACCESS_KEY=your-secret
      AWS_DEFAULT_REGION=your-region
      AWS_BUCKET=your-bucket
+     AWS_URL=https://yourcloudfrontdomain.cloudfront.net (Optional: For CloudFront URLs)
      ```
 
 To change the storage location, update the `FILESYSTEM_DISK` value in your `.env` file.

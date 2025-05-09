@@ -180,15 +180,16 @@ paths:
                       $ref: '#/components/schemas/Review'
                   rating_summary:
                     type: object
+                    description: Pre-calculated rating summary for the product, based on published reviews. Updated automatically when reviews change.
                     properties:
                       average:
                         type: number
                         format: float
-                        description: Average rating value (1-5)
+                        description: Average rating value (1-5). Returns 0 if no published reviews.
                         example: 4.5
                       count:
                         type: integer
-                        description: Total number of reviews
+                        description: Total number of published reviews. Returns 0 if no published reviews.
                         example: 10
                       distribution:
                         type: object
@@ -237,7 +238,7 @@ paths:
   /products/{id}/rating:
     get:
       summary: Get product rating summary
-      description: Retrieves the rating summary for a specific product.
+      description: Retrieves the pre-calculated rating summary for a specific product. Statistics are based on published reviews and updated automatically.
       operationId: getProductRatingSummary
       tags:
         - Reviews
@@ -250,7 +251,7 @@ paths:
             type: string
       responses:
         '200':
-          description: Rating summary for the product
+          description: Pre-calculated rating summary for the product. Returns a zeroed summary if the product has no published reviews or statistics are not yet generated.
           content:
             application/json:
               schema:
@@ -259,11 +260,11 @@ paths:
                   average:
                     type: number
                     format: float
-                    description: Average rating value (1-5)
+                    description: Average rating value (1-5) from pre-calculated statistics. Returns 0 if no published reviews.
                     example: 4.5
                   count:
                     type: integer
-                    description: Total number of reviews
+                    description: Total number of published reviews from pre-calculated statistics. Returns 0 if no published reviews.
                     example: 10
                   distribution:
                     type: object
@@ -590,7 +591,7 @@ components:
           description: Storage path
         url:
           type: string
-          description: Public URL for the media item
+          description: Publicly accessible URL for the media item. The specific format (e.g., direct S3, CloudFront CDN, or local path) depends on the server's storage configuration. See the main API documentation under 'Media Storage' for details on S3/CloudFront URL behavior.
 
     ReviewResponse:
       type: object

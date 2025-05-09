@@ -9,6 +9,7 @@ This service provides API endpoints for managing product ratings and reviews, in
 - Support for multilingual reviews (English and Arabic)
 - Automatic translation of reviews between supported languages
 - Media upload functionality for attaching images and videos to reviews
+- Efficient, pre-calculated product rating statistics for fast API responses
 - Publication status management (pending, published, rejected)
 - Configurable storage options (local, public, S3)
 - CloudFront cache invalidation for media files and API responses
@@ -51,8 +52,11 @@ The service supports uploading media files (images and videos) with reviews:
    - Requires running `php artisan storage:link` to create the symbolic link
 
 3. **S3 Storage** (set `FILESYSTEM_DISK=s3`)
-   - Files are stored in Amazon S3
-   - Requires proper AWS configuration in `.env` file
+   - Files are stored in Amazon S3.
+   - Media URLs will be CloudFront URLs if the `AWS_URL` environment variable in your `.env` file is set to your CloudFront distribution's domain (e.g., `AWS_URL=https://yourcloudfrontdomain.cloudfront.net`).
+   - If `AWS_URL` is not set, direct S3 bucket URLs will be generated.
+   - Requires proper AWS configuration in `.env` file (e.g., `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, `AWS_BUCKET`).
+   - If `AWS_URL` is not set and essential S3 configuration like `AWS_BUCKET` or `AWS_DEFAULT_REGION` is missing, the system will fallback to generating URLs as if the media were in local public storage (`/storage/reviews/...`). This is a safety fallback and indicates a misconfiguration if S3 is the intended storage.
 
 To make the storage directory publicly accessible, run:
 
