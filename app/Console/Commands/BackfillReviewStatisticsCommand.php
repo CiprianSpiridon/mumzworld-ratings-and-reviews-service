@@ -120,21 +120,19 @@ class BackfillReviewStatisticsCommand extends Command
     }
 
     /**
-     * Get all unique product IDs from the ratings_and_reviews table.
-     * 
-     * This method paginates through the 'product_id-index' GSI of the RatingAndReview table
-     * to efficiently retrieve all distinct product IDs.
+     * Get all unique product IDs from reviews
      *
-     * @param int $chunkSize How many items to fetch per DynamoDB query call during pagination.
-     * @return array<string> An array of unique product IDs.
+     * Paginates through the product_id GSI to efficiently retrieve distinct product IDs
+     *
+     * @param int $chunkSize Items per DynamoDB query during pagination
+     * @return array<string> Array of unique product IDs
      */
     protected function getAllUniqueProductIds(int $chunkSize): array
     {
         $uniqueProductIds = [];
         $lastEvaluatedKey = null;
         $iterations = 0;
-        $maxIterations = 10000; // Safety break for very large number of reviews pages (adjust if needed)
-
+        $maxIterations = 10000; // Safety limit for large datasets
         $this->info('Fetching unique product IDs from reviews table (GSI pagination)...');
         // Progress bar for fetching IDs (can be long if many reviews)
         $progress = $this->output->createProgressBar(); 

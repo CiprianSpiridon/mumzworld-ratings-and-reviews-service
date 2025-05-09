@@ -31,17 +31,13 @@ class RatingsAndReviewsStatisticsService
     }
 
     /**
-     * Calculate and store/update review statistics for a given product.
+     * Calculate and store review statistics for a product
      * 
-     * This method fetches all published reviews for the specified product ID,
-     * calculates the average rating, total count, and rating distribution,
-     * and then saves these statistics to the `ratings_and_review_statistics` table.
-     * It handles DynamoDB pagination when fetching reviews.
-     * If no published reviews are found, it ensures a zeroed-out statistics record exists.
+     * Fetches published reviews, calculates ratings metrics, and saves to database.
+     * Creates zeroed statistics if no reviews exist.
      *
-     * @param string $productId The ID of the product to calculate statistics for.
-     * @return bool True if the calculation and storage were successful (or if zeroed stats were appropriately set),
-     *              false if an exception occurred during the process.
+     * @param string $productId Product to calculate statistics for
+     * @return bool True if successful, false if errors occurred
      */
     public function calculate(string $productId): bool
     {

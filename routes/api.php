@@ -41,24 +41,21 @@ Route::group([], function () {
 });
 
 // --- Admin Facing Endpoints ---
-// Grouped for organization and potential future shared middleware (e.g., admin auth).
-// No URI prefix is applied to these routes.
+// Admin routes with 'admin.' name prefix
 Route::group(['as' => 'admin.'], function () { 
-    // Admin endpoint to filter by status, user, product, etc.
-    // Note: This route GET /reviews might conflict with a potential customer-facing GET /reviews if you add one later without distinct parameters or prefixes.
-    // For now, assuming current structure is intended.
+    // Filter reviews by status, user, product
     Route::get('/reviews', [ReviewController::class, 'getReviewsByStatus'])->name('reviews.index');
 
-    // Admin endpoint - check if there are pending reviews
+    // Check for pending reviews
     Route::get('/reviews/pending-check', [ReviewController::class, 'hasPendingReviews'])->name('reviews.pending_check');
 
-    // Admin endpoint - get review counts by status (BK function)
+    // Get review counts by status (BK function)
     Route::get('/reviews/counts-by-status-bk', [ReviewController::class, 'getReviewCountsByStatusBK'])->name('reviews.counts_by_status_bk');
 
-    // Admin endpoint - delete a review
+    // Delete a review
     Route::delete('/reviews/{id}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
-    // Admin endpoint - update publication status of a review
+    // Update review publication status
     Route::put('/reviews/{id}/publication', [ReviewController::class, 'updatePublicationStatus'])->name('reviews.update_publication_status');
 });
 

@@ -113,14 +113,13 @@ class TranslationService
     }
 
     /**
-     * Translate a given text string from a source language to a target language.
-     * Uses the configured Google Cloud Translation API.
+     * Translate text using Google Cloud Translation API
      *
-     * @param string $text The text to translate.
-     * @param string $sourceLanguage The source language code (e.g., 'en').
-     * @param string $targetLanguage The target language code (e.g., 'ar').
-     * @return string The translated text, or an empty string if translation fails or returns empty.
-     * @throws \Exception if API key or endpoint is not configured, or if the API request fails critically.
+     * @param string $text Text to translate
+     * @param string $sourceLanguage Source language code (e.g., 'en')
+     * @param string $targetLanguage Target language code (e.g., 'ar')
+     * @return string Translated text or empty string if translation fails
+     * @throws \Exception If API configuration missing or request fails
      */
     protected function translate(string $text, string $sourceLanguage, string $targetLanguage): string
     {

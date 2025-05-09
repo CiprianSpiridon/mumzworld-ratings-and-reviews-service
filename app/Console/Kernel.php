@@ -40,12 +40,11 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
 
-        // Schedule the reviews:translate command to run daily.
-        // It attempts to translate up to 500 published reviews that need translation.
-        // withoutOverlapping() ensures that a new instance of the command doesn't start if the previous one is still running.
+        // Daily translation of published reviews (max 500)
+        // Prevents overlapping executions
         $schedule->command('reviews:translate --limit=500 --status=published')
-            ->daily() // Runs once per day (typically at midnight server time)
-            ->withoutOverlapping(); // Prevents job overlap
+            ->daily()
+            ->withoutOverlapping();
     }
 
     /**

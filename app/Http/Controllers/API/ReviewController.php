@@ -9,7 +9,6 @@ use App\Http\Requests\UpdatePublicationStatusRequest;
 use App\Http\Requests\GetReviewsByStatusRequest;
 use App\Http\Resources\RatingAndReviewResource;
 use App\Models\RatingAndReview;
-// RatingsAndReviewStatistics model is not directly used by methods in this controller, only its service for queueing.
 use App\Services\CloudFrontService;
 use App\Services\MediaUploadService;
 use App\Services\RatingsAndReviewsStatisticsService;
@@ -149,21 +148,20 @@ class ReviewController extends Controller
     }
 
     /**
-     * Get reviews, optionally filtered by status and other criteria, with pagination.
-     * 
-     * Supports filtering by publication_status, user_id, product_id, country, and language.
-     * Implements DynamoDB key-based pagination using a 'next_token'.
-     * Allows cache invalidation via a query parameter.
+     * Get reviews filtered by status and other criteria, with pagination.
      *
-     * @param GetReviewsByStatusRequest $request The validated request with filter and pagination parameters.
-     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection The collection of reviews.
+     * @param GetReviewsByStatusRequest $request Filter and pagination parameters
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
     public function getReviewsByStatus(GetReviewsByStatusRequest $request): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
     {
+        // Extract primary filter parameters
         $publicationStatus = $request->input('publication_status', null);
         $userId = $request->input('user_id', null);
         $productId = $request->input('product_id', null);
         $query = RatingAndReview::query();
+
+        // Select appropriate GSI based on primary filter
         if ($publicationStatus) {
             $query->where('publication_status', $publicationStatus)
                 ->usingIndex('publication_status-index');
@@ -174,18 +172,25 @@ class ReviewController extends Controller
             $query->where('product_id', $productId)
                 ->usingIndex('product_id-index');
         } else {
+            // Fallback to product index if no primary filter provided
             Log::debug("[Controller] getReviewsByStatus called without primary indexed filter, defaulting to product_id-index scan for pagination base.");
             $query->usingIndex('product_id-index'); 
         }
+
+        // Apply secondary filters
         if ($request->has('country')) {
             $query->where('country', $request->country);
         }
         if ($request->has('language')) {
             $query->where('original_language', $request->language);
         }
+
+        // Setup pagination limits
         $perPage = $request->input('per_page', 100);
-        $perPage = min($perPage, 100);
+        $perPage = min($perPage, 100); // Cap max results at 100
         $query->limit($perPage);
+
+        // Handle DynamoDB key-based pagination token
         if ($request->has('next_token')) {
             try {
                 $lastEvaluatedKey = json_decode($request->next_token, true);
@@ -197,35 +202,53 @@ class ReviewController extends Controller
                 Log::error('[Controller] Error parsing next_token for getReviewsByStatus: ' . $e->getMessage(), ['token' => $request->next_token]);
             }
         }
+
+        // Execute query
         $results = $query->get();
         $lastItem = $results->last();
+        
+        // Generate next page token based on the used index
         $nextPageTokenData = null;
         if ($lastItem) {
-            if ($publicationStatus) {
-                $nextPageTokenData = ['review_id' => $lastItem->review_id, 'publication_status' => $lastItem->publication_status];
-            } elseif ($userId) {
-                $nextPageTokenData = ['review_id' => $lastItem->review_id, 'user_id' => $lastItem->user_id];
-            } elseif ($productId) {
-                $nextPageTokenData = ['review_id' => $lastItem->review_id, 'product_id' => $lastItem->product_id];
-            } else {
-                $nextPageTokenData = ['review_id' => $lastItem->review_id, 'product_id' => $lastItem->product_id];
+            // Determine which index was used and create appropriate token
+            switch (true) {
+                case !empty($publicationStatus):
+                    $nextPageTokenData = ['review_id' => $lastItem->review_id, 'publication_status' => $lastItem->publication_status];
+                    break;
+                case !empty($userId):
+                    $nextPageTokenData = ['review_id' => $lastItem->review_id, 'user_id' => $lastItem->user_id];
+                    break;
+                default:
+                    // Both productId filter case and no-filter case use product_id-index,
+                    // so we use product_id in the token for both scenarios
+                    $nextPageTokenData = ['review_id' => $lastItem->review_id, 'product_id' => $lastItem->product_id];
             }
         }
         $nextToken = $nextPageTokenData ? json_encode($nextPageTokenData) : null;
+        
+        // Sort by creation date (newest first)
         $sortedResults = $results->sortByDesc('created_at');
+        
+        // Handle cache invalidation if requested
         if ($request->boolean('invalidate_cache')) {
             $this->cloudFrontService->invalidatePaths(['/api/reviews']);
         }
+
+        // Create resource collection with pagination metadata
         $collection = RatingAndReviewResource::collection($sortedResults->values());
         $currentPage = $request->input('page', 1);
         $path = url('/api/reviews');
         $queryParams = $request->except(['page', 'next_token']);
+        
+        // Build response metadata and links
         $additionalData = [];
         $links = ['first' => $path . '?' . http_build_query(array_merge($queryParams, ['page' => 1]))];
+        
         if ($nextToken && $results->count() >= $perPage) {
             $additionalData['next_token'] = $nextToken;
             $links['next'] = $path . '?' . http_build_query(array_merge($queryParams, ['next_token' => $nextToken]));
         }
+        
         $additionalData['links'] = $links;
         $additionalData['meta'] = [
             'current_page' => $currentPage,
@@ -234,17 +257,20 @@ class ReviewController extends Controller
             'from' => (($currentPage - 1) * $perPage) + 1,
             'to' => (($currentPage - 1) * $perPage) + $results->count(),
         ];
-        if (app()->environment('local', 'development')) {
-            $additionalData['debug'] = [
-                'total_results_on_page' => $results->count(),
-                'query_details' => [
-                    'primary_filter_status' => $publicationStatus,
-                    'primary_filter_user' => $userId,
-                    'primary_filter_product' => $productId,
-                ],
-                'dynamodb_last_key_for_next_token' => $nextPageTokenData
-            ];
-        }
+        
+        // Add debugging info in development environments
+        // if (app()->environment('local', 'development')) {
+        //     $additionalData['debug'] = [
+        //         'total_results_on_page' => $results->count(),
+        //         'query_details' => [
+        //             'primary_filter_status' => $publicationStatus,
+        //             'primary_filter_user' => $userId,
+        //             'primary_filter_product' => $productId,
+        //         ],
+        //         'dynamodb_last_key_for_next_token' => $nextPageTokenData
+        //     ];
+        // }
+        
         $collection->additional($additionalData);
         return $collection;
     }
@@ -278,10 +304,10 @@ class ReviewController extends Controller
     }
 
     /**
-     * DO NOT TOUCH THIS FUNCTION - used by admin panel (BK likely means Backup or for Baskar K.)
+     * Legacy function used by admin panel - DO NOT MODIFY
      * 
-     * Get review counts for each publication status (pending, published, rejected) and a total.
-     * Note: This method iterates and counts for each status, which can be less efficient than a single aggregated query if possible.
+     * "BK" refers to backup implementation required by existing admin panel.
+     * Returns counts for each review status plus total.
      * 
      * @return JsonResponse
      */

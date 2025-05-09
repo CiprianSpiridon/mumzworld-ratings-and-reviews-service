@@ -4,29 +4,27 @@ namespace App\Services;
 
 use App\Jobs\InvalidateCloudFrontCache;
 use Illuminate\Support\Facades\Log;
-// Illuminate\Support\Facades\Storage; // Storage facade is not used in this service
+// Storage facade not needed in this service
 
 /**
  * Class CloudFrontService
  * 
- * Service responsible for dispatching jobs to invalidate AWS CloudFront cache paths.
- * This is used to ensure CDN content (media files, API responses) is refreshed when underlying data changes.
+ * Dispatches jobs to invalidate AWS CloudFront cache paths.
+ * Ensures CDN content refreshes when underlying data changes.
  */
 class CloudFrontService
 {
     /**
-     * The queue name used for CloudFront invalidation jobs.
+     * Queue for CloudFront invalidation jobs
      *
      * @var string
      */
     private const INVALIDATION_QUEUE = 'cache-invalidation';
 
     /**
-     * Invalidate CloudFront cache for a specific review's media files.
+     * Invalidate CloudFront cache for a review's media files
      *
-     * Targets paths like "/reviews/{reviewId}/*".
-     *
-     * @param string $reviewId The ID of the review whose media cache should be invalidated.
+     * @param string $reviewId Review ID for media cache invalidation
      * @return void
      */
     public function invalidateReviewMedia(string $reviewId): void
@@ -39,9 +37,7 @@ class CloudFrontService
     }
 
     /**
-     * Invalidate CloudFront cache for all review media files.
-     *
-     * Targets paths like "/reviews/*".
+     * Invalidate CloudFront cache for all review media files
      *
      * @return void
      */
@@ -53,9 +49,9 @@ class CloudFrontService
     }
 
     /**
-     * Invalidate CloudFront cache for specific media items based on their paths.
+     * Invalidate CloudFront cache for specific media items
      *
-     * @param array<int, array{'path': string}> $mediaItems An array of media items, each expected to have a 'path' key.
+     * @param array<int, array{'path': string}> $mediaItems Media items with 'path' key
      * @return void
      */
     public function invalidateMediaItems(array $mediaItems): void
@@ -82,10 +78,10 @@ class CloudFrontService
     }
 
     /**
-     * Invalidate CloudFront cache for an array of specific paths.
+     * Invalidate CloudFront cache for specific paths
      *
-     * @param array<int, string> $paths Array of paths to invalidate (e.g., ["/images/foo.jpg", "/api/bar"]). Paths should be absolute from the CloudFront distribution root.
-     * @param bool $async Whether to dispatch the job asynchronously (queued) or synchronously.
+     * @param array<int, string> $paths Paths to invalidate from CloudFront root
+     * @param bool $async Whether to queue (true) or run immediately (false)
      * @return void
      */
     public function invalidatePaths(array $paths, bool $async = true): void
@@ -111,11 +107,9 @@ class CloudFrontService
     }
 
     /**
-     * Invalidate CloudFront cache for a specific product's reviews API responses.
+     * Invalidate cache for a product's reviews API responses
      *
-     * Targets paths like "/api/products/{productId}/reviews*".
-     *
-     * @param string $productId The ID of the product.
+     * @param string $productId Product ID
      * @return void
      */
     public function invalidateProductReviewsApi(string $productId): void
@@ -135,11 +129,9 @@ class CloudFrontService
     }
 
     /**
-     * Invalidate CloudFront cache for API responses related to a specific review.
+     * Invalidate cache for API responses related to a review
      *
-     * Targets paths like "/api/reviews/{reviewId}*", "/api/reviews/{reviewId}/translate*", etc.
-     *
-     * @param string $reviewId The ID of the review.
+     * @param string $reviewId Review ID
      * @return void
      */
     public function invalidateReviewApi(string $reviewId): void
@@ -162,7 +154,7 @@ class CloudFrontService
     }
 
     /**
-     * Invalidate CloudFront cache for all general reviews API responses.
+     * Invalidate cache for all general reviews API responses
      *
      * @return void
      */
